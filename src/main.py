@@ -10,6 +10,7 @@
 
 import os
 import json
+from tracemalloc import start
 import yaml
 
 import torch
@@ -25,7 +26,7 @@ from utils.logger_tools import *
 from utils.shell_tools import *
 from utils.tb_tools import *
 from evaluate.metrics import EvaluationMetrics
-from nnArchitecture.unet3d import UNet3D
+from nnArchitecture.unet3d import UNet3D, DW_UNet3D
 
 from datasets.transforms import *
 from datasets.BraTS21 import BraTS21_3D
@@ -49,6 +50,8 @@ def load_model(args):
     """加载模型"""
     if args.model == 'unet3d':
         model = UNet3D(in_channels=args.in_channel, out_channels=args.out_channel)
+    elif args.model == 'dw_unet3d':
+        model = DW_UNet3D(in_channels=args.in_channel, out_channels=args.out_channel)
     model = model.to(DEVICE)
     
     return model
@@ -254,9 +257,10 @@ def parse_args_from_yaml(yaml_file):
     return config
 
 if __name__ == '__main__':
+    start_time = time.time()
     parser = argparse.ArgumentParser(description='Train args')
     parser.add_argument('--config', type=str, 
-                        default='/mnt/d/AI_Research/WS-HUB/Linux-VoxelMedix/VoxelMedix/src/configs/debug.yaml', 
+                        default='/root/workspace/VoxelMedix/src/configs/dw_unet3d.yaml', 
                         help='Path to the configuration YAML file')
     parser.add_argument('--resume', type=str, 
                         default=None, 
@@ -267,4 +271,7 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     args = argparse.Namespace(**parse_args_from_yaml(args.config))
+    end_time = time.time()
+    
+    print(f"加载配置文件耗时: {end_time - start_time:.2f} s")
     main(args=args)

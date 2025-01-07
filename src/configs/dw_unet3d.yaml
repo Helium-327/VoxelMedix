@@ -1,6 +1,6 @@
 epochs: 50
 num_workers: 4
-batch_size: 1
+batch_size: 2
 
 model: "dw_unet3d"
 in_channel: 4

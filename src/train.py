@@ -279,5 +279,4 @@ def train(model, Metrics, train_loader, val_loader, scaler, optimizer, scheduler
     writer.close() 
     
 
-
-
+    

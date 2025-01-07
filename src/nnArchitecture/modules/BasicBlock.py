@@ -11,11 +11,26 @@ import torch
 import torch.nn as nn
 
 class ResCBRBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, use_dw=False):
         super(ResCBRBlock, self).__init__()
-        self.conv1 = nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1)
+        self.use_dw = use_dw
+
+        if use_dw:
+            # Depthwise Separable Convolution
+            self.conv1 = nn.Sequential(
+                nn.Conv3d(in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels),  # Depthwise Convolution
+                nn.Conv3d(in_channels, out_channels, kernel_size=1)  # Pointwise Convolution
+            )
+            self.conv2 = nn.Sequential(
+                nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1, groups=out_channels),  # Depthwise Convolution
+                nn.Conv3d(out_channels, out_channels, kernel_size=1)  # Pointwise Convolution
+            )
+        else:
+            # Standard Convolution
+            self.conv1 = nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1)
+            self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1)
+
         self.bn1 = nn.BatchNorm3d(out_channels)
-        self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm3d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
