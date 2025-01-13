@@ -8,6 +8,7 @@
 =================================================
 '''
 
+from ast import List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -190,7 +191,12 @@ class BaseDWUNet3D(nn.Module):
 """---------------------------------------- UNet3D 模型 ----------------------------------------"""
 # Specific UNet3D implementations
 class UNet3D(BaseUNet3D):
-    def __init__(self, in_channels, out_channels, channels_list=None):
+    def __init__(
+        self, 
+        in_channels:int, 
+        out_channels:int, 
+        channels_list:List=None
+        ):
         if channels_list is None:
             channels_list = [32, 64, 128, 256]
         self.encoder = DoubleCBR_Block_3x3
@@ -199,7 +205,12 @@ class UNet3D(BaseUNet3D):
         super(UNet3D, self).__init__(in_channels, out_channels, channels_list)
 
 class soft_UNet3D(BaseUNet3D):
-    def __init__(self, in_channels, out_channels, channels_list=None, soft=True):
+    def __init__(
+        self, 
+        in_channels:int, 
+        out_channels:int, 
+        channels_list:List=None, 
+        soft:bool=True):
         if channels_list is None:
             channels_list = [32, 64, 128, 256]
         self.encoder = DoubleCBR_Block_3x3
@@ -212,7 +223,12 @@ class soft_UNet3D(BaseUNet3D):
 #? DC: Dilated Convolution Layer
 #? I: Inception Layer
 class CAD_UNet3D(BaseUNet3D):
-    def __init__(self, in_channels, out_channels, channels_list=None):
+    def __init__(
+        self, 
+        in_channels:int, 
+        out_channels:int, 
+        channels_list:List=None
+        ):
         if channels_list is None:
             channels_list = [32, 64, 128, 256]
         self.encoder = ConvAttBlock
@@ -276,17 +292,38 @@ class soft_DW_UNet3D(BaseDWUNet3D):
 if __name__ == '__main__':
     from modules.BasicBlock import *
     from modules.SoftPooling import SoftPool3D
+    from ptflops import get_model_complexity_info
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    input_data = torch.randn(1, 4, 128, 128, 128).to(device)
-    # model = UNet3D(in_channels=4, out_channels=4, channels_list=[32, 64, 128, 256]).to(device)
-    model = soft_UNet3D(in_channels=4, out_channels=4).to(device)
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # input_data = torch.randn(1, 4, 128, 128, 128).to(device)
+    # # model = UNet3D(in_channels=4, out_channels=4, channels_list=[32, 64, 128, 256]).to(device)
+    # model = soft_UNet3D(in_channels=4, out_channels=4).to(device)
     
-    output = model(input_data)
-    print(output.shape)
-    # Print model summary
-    print_model_summary(model, input_data=input_data, device=device)
+    # output = model(input_data)
+    # print(output.shape)
+    # # Print model summary
+    # print_model_summary(model, input_data=input_data, device=device)
     
+    
+    # 假设你的 UNet 模型类名为 UNet3D
+
+    # 定义输入张量的形状 (batch_size, channels, depth, height, width)
+    input_shape = (4, 128, 128, 128)  # 替换为你的输入形状
+
+    # 创建模型实例
+    model = UNet3D(in_channels=4, out_channels=2, channels_list=[32, 64, 128, 256])
+
+    # 使用 ptflops 计算 FLOPs 和参数量
+    macs, params = get_model_complexity_info(
+        model, 
+        input_shape, 
+        as_strings=True, 
+        print_per_layer_stat=True, 
+        verbose=True
+    )
+
+    print(f"Computational complexity: {macs}")
+    print(f"Number of parameters: {params}")
     
 else:
     from .modules.BasicBlock import *
