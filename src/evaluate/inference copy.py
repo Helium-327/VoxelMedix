@@ -32,7 +32,7 @@ from torch.utils.data import DataLoader
 from datasets.BraTS21 import BraTS21_3D
 from datasets.transforms import Compose, FrontGroundNormalize, RandomCrop3D, ToTensor
 from loss_function import DiceLoss, CELoss
-from evaluate.metrics import *
+from metrics import *
 from utils.logger_tools import custom_logger
 from utils.ckpt_tools import load_checkpoint
 
@@ -83,6 +83,19 @@ model_name = model.__class__.__name__
 ckpt_path = '/root/workspace/VoxelMedix/results/2025-01-11/2025-01-11_22-04-46/checkpoints/best@e98_UNet3D__diceloss0.1403_dice0.8676_2025-01-11_22-04-46_13.pth'
 output_path = os.path.join('/root/workspace/VoxelMedix/output', model_name)
 
+def process_batch(data):
+    try:
+        # 处理数据
+        pass
+    except Exception as e:
+        print(f"Error in subprocess: {e}")
+    finally:
+        torch.cuda.empty_cache()  # 释放 GPU 内存
+
+def process_batch(vimage, vmask, model, device, window_size, stride_ratio):
+    pred_vimage = slide_window_pred(model, vimage, device, window_size=window_size, stride_ratio=stride_ratio)
+    return pred_vimage, vmask
+
 def inference(
     test_loader=test_loader, 
     output_path=output_path, 
@@ -91,38 +104,40 @@ def inference(
     scaler = scaler,
     metrics=Metricer,
     ckpt_path=ckpt_path,
-    affine=None, 
+    affine=Affine, 
     window_size=(128, 128, 128), 
     stride_ratio=0.5, 
     save_flag=True,
     device=DEVICE
     ):
-    if affine is not None:
-        affine = affine
-    else:
-        affine = np.array([[ -1.,  -0.,  -0.,   0.],
-                    [ -0.,  -1.,  -0., 239.],
-                    [  0.,   0.,   1.,   0.],
-                    [  0.,   0.,   0.,   1.]])
     # 加载模型权重
     model, optimizer, scaler, start_epoch, best_val_loss = load_checkpoint(model, optimizer, scaler, ckpt_path)
     model.to(device)
     
     Metrics_list = np.zeros((7, 4))
+    
+    # 使用多进程池
+    num_processes = cpu_count()  # 使用所有可用的 CPU 核心
+    with Pool(processes=num_processes) as pool:
+        results = []
+        for data in tqdm(test_loader):
+            results.append(pool.apply_async(process_batch, args=(data, model, device, window_size, stride_ratio)))
         
-    for i, data in enumerate(tqdm(test_loader)):
-        vimage, vmask = data[0], data[1]
-        pred_vimage= slide_window_pred(model, vimage, device, window_size, stride_ratio=1)
+        pool.close()  # 关闭池，防止新任务提交
+        pool.join()   # 等待所有子进程完成
         
-        # 保存预测结果nii文件
-        os.makedirs(output_path, exist_ok=True)
-        if save_flag:
-            save_nii(pred_vimage, vimage, vmask, output_path, affine, i)
-        
-        # 评估指标
-        metrics = Metricer.update(pred_vimage, vmask)
-        Metrics_list += metrics
-
+        for i, result in enumerate(tqdm(results)):
+            pred_vimage, vmask = result.get()
+            
+            # 保存预测结果nii文件
+            os.makedirs(output_path, exist_ok=True)
+            if save_flag:
+                save_nii(pred_vimage, vimage, vmask, output_path, affine, i)
+            
+            # 评估指标
+            metrics = Metricer.update(pred_vimage, vmask)
+            Metrics_list += metrics
+    
     Metrics_list /= len(test_loader)
 
     test_scorce = {}
@@ -150,6 +165,26 @@ def inference(
     log_path = os.path.join(output_path, f"test_metrics.txt")
     custom_logger(metrics_info, log_path, log_time=True)
     print(metrics_info)
+
+# def slide_window_pred(model, test_data, device, window_size, stride_size):
+#     N, C, D, H, W = test_data.shape
+#     model.eval()
+
+#     with torch.no_grad():
+#         with autocast(device_type='cuda'):
+#             pred_mask = torch.zeros_like(test_data)
+#             for d in range(0, D - window_size[0]+1, stride_size[0]): # D 维度
+#                 for h in range(0, H - window_size[1]+1, stride_size[1]): # H 维度
+#                     for w in range(0, W - window_size[2]+1, stride_size[2]): # W 维度
+#                         patch = test_data[:, :, d:d+window_size[0], h:h+window_size[1], w:w+window_size[2]]
+#                         patch = patch.to(device)
+
+#                         pred = model(patch)
+
+#                         # 将预测结果保存到原始图像的对应位置
+#                         pred_mask[:, :, d:d+window_size[0], h:h+window_size[1], w:w+window_size[2]] = pred
+
+#     return pred_mask
 
 def slide_window_pred(model, test_data, device, window_size, stride_ratio=1):
     """在 3D 数据上执行滑动窗口预测。
@@ -258,7 +293,7 @@ def main():
     print("😃😃well done")
 
 if __name__ == '__main__':
-    # multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method('spawn')
     
 
     # parser = argparse.ArgumentParser(description="inference args")
