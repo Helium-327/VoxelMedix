@@ -33,7 +33,7 @@ class EvaluationMetrics:
         et_pred = y_pred[:, 3, ...]
         tc_pred = y_pred[:, 1, ...] + y_pred[:, 3, ...]
         wt_pred = y_pred[:, 1:, ...].sum(dim=1)
-        
+         
         et_mask = y_mask[:, 3, ...]
         tc_mask = y_mask[:, 1, ...] + y_mask[:, 3, ...]
         wt_mask = y_mask[:, 1:, ...].sum(dim=1)
@@ -80,23 +80,23 @@ class EvaluationMetrics:
         for sub_area, sub_pred, sub_mask in zip(self.sub_areas, pred_list, mask_list):
             intersection = (sub_pred * sub_mask).sum(dim=(-3, -2, -1))
             union = sub_pred.sum(dim=(-3, -2, -1)) + sub_mask.sum(dim=(-3, -2, -1))
-            dice_c = (2. * intersection + self.smooth) / (union + self.smooth)
+            dice_c = (2. * intersection ) / (union + self.smooth)
             dice_coeffs[sub_area] = dice_c.mean()
         
         intersection = (y_pred * y_mask).sum(dim=(-3, -2, -1))
         union = y_pred.sum(dim=(-3, -2, -1)) + y_mask.sum(dim=(-3, -2, -1))
-        dice = (2. * intersection + self.smooth) / (union + self.smooth)
+        dice = (2. * intersection ) / (union + self.smooth)
         dice_coeffs['global mean'] = dice.mean()
 
         # 提取特定类别的Dice系数
         et_dice = dice_coeffs['ET'].item()
         tc_dice = dice_coeffs['TC'].item()
         wt_dice = dice_coeffs['WT'].item()
+        global_mean_dice = dice_coeffs['global mean'].item()
 
         mean_dice = (et_dice + tc_dice + wt_dice) / 3
-        global_mean_dice = dice_coeffs['global mean'].item()
         
-        return mean_dice, et_dice, tc_dice, wt_dice
+        return global_mean_dice, et_dice, tc_dice, wt_dice
     
     def jaccard_index(self, y_pred, y_mask):
         """
@@ -117,17 +117,23 @@ class EvaluationMetrics:
         for sub_area, pred, mask in zip(self.sub_areas, pred_list, mask_list):
             intersection = (pred * mask).sum(dim=(-3, -2, -1))
             union = pred.sum(dim=(-3, -2, -1)) + mask.sum(dim=(-3, -2, -1)) - intersection
-            jaccard = (intersection  + self.smooth)/ (union + self.smooth)
+            jaccard = (intersection)/ (union + self.smooth)
             jaccard_coeffs[sub_area] = jaccard.mean()
 
+        intersection = (y_pred * y_mask).sum(dim=(-3, -2, -1))
+        union = y_pred.sum(dim=(-3, -2, -1)) + y_mask.sum(dim=(-3, -2, -1)) - intersection
+        jaccard = (intersection) / (union + self.smooth)
+        jaccard_coeffs['global mean'] = jaccard.mean()
+        
         # 提取特定类别的Jaccard系数
         et_jaccard = jaccard_coeffs['ET'].item()
         tc_jaccard = jaccard_coeffs['TC'].item()
         wt_jaccard = jaccard_coeffs['WT'].item()
-
+        global_mean_dice = jaccard_coeffs['global mean'].item()
+        
         mean_jaccard = (et_jaccard + tc_jaccard + wt_jaccard) / 3
-
-        return mean_jaccard, et_jaccard, tc_jaccard, wt_jaccard
+        
+        return global_mean_dice, et_jaccard, tc_jaccard, wt_jaccard
     
     def recall(self, y_pred, y_mask):
         """
@@ -147,16 +153,23 @@ class EvaluationMetrics:
         # 计算子区域的混淆矩阵的元素
         for sub_area, pred, mask in zip(self.sub_areas, pred_list, mask_list):
             TP, FN, _, _ = self.calculate_confusion_matrix(pred, mask)
-            recall = (TP + self.smooth) / (TP + FN + self.smooth)
+            recall = (TP) / (TP + FN + self.smooth)
             recall_scores[sub_area] = recall.mean()
+        
+        # 计算全局平均Recall
+        TP, FN, _, _ = self.calculate_confusion_matrix(y_pred, y_mask)
+        recall = (TP) / (TP + FN + self.smooth)
+        recall_scores['global_mean'] = recall.mean()
+        
         
         et_recall = recall_scores['ET'].item()
         tc_recall = recall_scores['TC'].item()
         wt_recall = recall_scores['WT'].item()
+        global_mean_recall = recall_scores['global_mean'].item()
 
         mean_recall = (et_recall + tc_recall + wt_recall) / 3
 
-        return mean_recall, et_recall, tc_recall, wt_recall 
+        return global_mean_recall, et_recall, tc_recall, wt_recall 
     
     def precision(self, y_pred, y_mask):
         """
@@ -177,16 +190,22 @@ class EvaluationMetrics:
         # 计算混淆矩阵的元素
         for sub_area, pred, mask in zip(self.sub_areas, pred_list, mask_list):
             TP, _, FP, _ = self.calculate_confusion_matrix(pred, mask)
-            precision = (TP + self.smooth) / (TP + FP + self.smooth)
+            precision = (TP ) / (TP + FP + self.smooth)
             precision_scores[sub_area] = precision.mean()
-            
+        
+        
+        TP, _, FP, _ = self.calculate_confusion_matrix(y_pred, y_mask)
+        precision = (TP ) / (TP + FP + self.smooth)
+        precision_scores['global_mean'] = precision.mean()
+        
         et_precision = precision_scores['ET'].item()
         tc_precision = precision_scores['TC'].item()
         wt_precision = precision_scores['WT'].item()
+        global_mean_precision = precision_scores['global_mean'].item()
 
         mean_precision = (et_precision + tc_precision + wt_precision) / 3
         
-        return mean_precision, et_precision, tc_precision, wt_precision
+        return global_mean_precision, et_precision, tc_precision, wt_precision
         
     def accuracy(self, y_pred, y_mask):
         """
@@ -204,15 +223,21 @@ class EvaluationMetrics:
         pred_list, mask_list = self.pre_processing(y_pred, y_mask)
         for sub_area, pred, mask in zip(self.sub_areas, pred_list, mask_list):
             TP, FN, FP, TN = self.calculate_confusion_matrix(pred, mask)
-            accuracy = (TP + TN) / (TP + FN + FP + TN)
+            accuracy = (TP + TN) / (TP + FN + FP + TN + self.smooth)
             accuracy_scores[sub_area] = accuracy.mean()
+            
+        TP, FN, FP, TN = self.calculate_confusion_matrix(y_pred, y_mask)
+        accuracy = (TP + TN) / (TP + FN + FP + TN)
+        accuracy_scores['global_mean'] = accuracy.mean()
             
         et_accuracy = accuracy_scores['ET'].item()
         tc_accuracy = accuracy_scores['TC'].item()
         wt_accuracy = accuracy_scores['WT'].item()
+        global_mean_accuracy = accuracy_scores['global_mean'].item()
+        
         mean_accuracy = (et_accuracy + tc_accuracy + wt_accuracy) / 3
         
-        return mean_accuracy, et_accuracy, tc_accuracy, wt_accuracy
+        return global_mean_accuracy, et_accuracy, tc_accuracy, wt_accuracy
     
     def f1_score(self, y_pred, y_mask):
         """
@@ -226,16 +251,20 @@ class EvaluationMetrics:
         recall_list = self.recall(y_pred, y_mask)
         
         # f1_score on ET
-        f1_scores[self.sub_areas[0]] = 2 * (precision_list[1] * recall_list[1]) / (precision_list[1] + recall_list[1])
+        f1_scores[self.sub_areas[0]] = 2 * (precision_list[1] * recall_list[1]) / (precision_list[1] + recall_list[1] + self.smooth)
         # f1_socre on TC
-        f1_scores[self.sub_areas[1]] = 2 * (precision_list[2] * recall_list[2]) / (precision_list[2] + recall_list[2])
+        f1_scores[self.sub_areas[1]] = 2 * (precision_list[2] * recall_list[2]) / (precision_list[2] + recall_list[2] + self.smooth)
         # f1_score on WT
-        f1_scores[self.sub_areas[2]] = 2 * (precision_list[3] * recall_list[3]) / (precision_list[3] + recall_list[3])
+        f1_scores[self.sub_areas[2]] = 2 * (precision_list[3] * recall_list[3]) / (precision_list[3] + recall_list[3] + self.smooth)
+        
+        # f1_score on global
+        f1_scores['global_mean'] = 2 * (precision_list[0] * recall_list[0]) / (precision_list[0] + recall_list[0] + self.smooth)
         
         et_f1 = f1_scores['ET']
         tc_f1 = f1_scores['TC']
         wt_f1 = f1_scores['WT']
-        mean_f1 = (et_f1 + tc_f1 + wt_f1) / 3       
+        # mean_f1 = (et_f1 + tc_f1 + wt_f1) / 3       
+        mean_f1 = f1_scores['global_mean']
         
         return mean_f1, et_f1, tc_f1, wt_f1
     
@@ -250,19 +279,95 @@ class EvaluationMetrics:
         precision_list = self.precision(y_pred, y_mask)
         recall_list = self.recall(y_pred, y_mask)
         
-        # f1_score on ET
-        f2_scores[self.sub_areas[0]] = (5 * precision_list[1] * recall_list[1]) / (4 * precision_list[1] + recall_list[1])
-        # f1_socre on TC
-        f2_scores[self.sub_areas[1]] = (5 * precision_list[2] * recall_list[2]) / (4 * precision_list[2] + recall_list[2])
-        # f1_score on WT
-        f2_scores[self.sub_areas[2]] = (5 * precision_list[3] * recall_list[3]) / (4 * precision_list[3] + recall_list[3])
+        # f2_score on ET
+        f2_scores[self.sub_areas[0]] = (5 * precision_list[1] * recall_list[1]) / (4 * precision_list[1] + recall_list[1] + self.smooth)
+        # f2_socre on TC
+        f2_scores[self.sub_areas[1]] = (5 * precision_list[2] * recall_list[2]) / (4 * precision_list[2] + recall_list[2] + self.smooth)
+        # f2_score on WT
+        f2_scores[self.sub_areas[2]] = (5 * precision_list[3] * recall_list[3]) / (4 * precision_list[3] + recall_list[3] + self.smooth)
+        # f2_score on global
+        f2_scores['global_mean'] = (5 * precision_list[0] * recall_list[0]) / (4 * precision_list[0] + recall_list[0] + self.smooth)
         
         et_f2 = f2_scores['ET']
         tc_f2 = f2_scores['TC']
         wt_f2 = f2_scores['WT']
-        mean_f2 = (et_f2 + tc_f2 + wt_f2) / 3
+        # mean_f2 = (et_f2 + tc_f2 + wt_f2) / 3
+        mean_f2 = f2_scores['global_mean']
 
         return mean_f2, et_f2, tc_f2, wt_f2
+    
+    def hausdorff_95_torch(self, y_pred, y_mask):
+        """
+        使用 PyTorch 计算 Hausdorff 95 距离
+        :param y_pred: 预测标签 (经过 argmax 和 one-hot 处理后的张量)
+        :param y_mask: 真实标签 (经过 one-hot 处理后的张量)
+        :return: Hausdorff 95 距离 (全局平均、ET、TC、WT)
+        """
+        h95_scores = {}
+        
+        # 获取子区的预测标签和真实标签
+        pred_list, mask_list = self.pre_processing(y_pred, y_mask)
+        
+        # 计算每个子区域的 Hausdorff 95 距离
+        for sub_area, pred, mask in zip(self.sub_areas, pred_list, mask_list):
+            #? 1. 获取预测和真实标签中的点坐标
+            pred_points = torch.nonzero(pred > 0.5, as_tuple=False).float()  # [N, 3]
+            mask_points = torch.nonzero(mask > 0.5, as_tuple=False).float()  # [M, 3]
+            
+            if len(pred_points) == 0 or len(mask_points) == 0:
+                h95_scores[sub_area] = 0.0  # 如果预测或真实标签中没有点，距离为0
+                continue
+            
+            #? 2. 计算点集之间的距离矩阵
+            dist_matrix = torch.cdist(pred_points, mask_points)  # [N, M]
+            
+            #? 3. 计算 Hausdorff 距离
+            hd_pred_to_mask = dist_matrix.min(dim=1).values  # [N]
+            hd_mask_to_pred = dist_matrix.min(dim=0).values  # [M]
+            
+            #? 4. 计算 Hausdorff 95 距离
+            k_pred = int(0.95 * len(hd_pred_to_mask))
+            k_mask = int(0.95 * len(hd_mask_to_pred))
+            
+            hd_pred_to_mask = torch.topk(hd_pred_to_mask, k_pred, largest=False).values[-1]
+            hd_mask_to_pred = torch.topk(hd_mask_to_pred, k_mask, largest=False).values[-1]
+            
+            #? 5. 计算全局Hausdorff 95 距离
+            h95 = max(hd_pred_to_mask, hd_mask_to_pred)
+            h95_scores[sub_area] = h95.item()
+        
+        # 计算全局的 Hausdorff 95 距离
+        pred_points = torch.nonzero(y_pred > 0.5, as_tuple=False).float()  # [N, 3]
+        mask_points = torch.nonzero(y_mask > 0.5, as_tuple=False).float()  # [M, 3]
+        
+        if len(pred_points) == 0 or len(mask_points) == 0:
+            h95_scores['global_mean'] = 0.0  # 如果预测或真实标签中没有点，距离为0
+        else:
+            # 计算点集之间的距离矩阵
+            dist_matrix = torch.cdist(pred_points, mask_points)  # [N, M]
+            
+            # 计算 Hausdorff 距离
+            hd_pred_to_mask = dist_matrix.min(dim=1).values  # [N]
+            hd_mask_to_pred = dist_matrix.min(dim=0).values  # [M]
+            
+            # 取前95%的点
+            k_pred = int(0.95 * len(hd_pred_to_mask))
+            k_mask = int(0.95 * len(hd_mask_to_pred))
+            
+            hd_pred_to_mask = torch.topk(hd_pred_to_mask, k_pred, largest=False).values[-1]
+            hd_mask_to_pred = torch.topk(hd_mask_to_pred, k_mask, largest=False).values[-1]
+            
+            # Hausdorff 95 距离
+            h95 = max(hd_pred_to_mask, hd_mask_to_pred)
+            h95_scores['global_mean'] = h95.item()
+        
+        # 提取特定类别的 Hausdorff 95 距离
+        et_h95 = h95_scores['ET']
+        tc_h95 = h95_scores['TC']
+        wt_h95 = h95_scores['WT']
+        global_mean_h95 = h95_scores['global_mean']
+        
+        return global_mean_h95, et_h95, tc_h95, wt_h95    
     
     def update(self, y_pred, y_mask):
         """

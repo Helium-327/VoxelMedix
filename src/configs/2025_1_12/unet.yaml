@@ -1,8 +1,8 @@
-epochs: 50
+epochs: 100
 num_workers: 8
 batch_size: 2
 
-model: "soft_unet3d"
+model: "unet3d"
 in_channel: 4
 mid_channel: 32
 out_channel: 4
@@ -42,8 +42,8 @@ val_csv: "/root/workspace/VoxelMedix/data/raw/brats21_original/val.csv"
 test_csv: "/root/workspace/VoxelMedix/data/raw/brats21_original/test.csv"
 
 local_train: True
-train_length: 200
-val_length: 40
+train_length: 500
+val_length: 100
 
 results_root: "/root/workspace/VoxelMedix/results"
 

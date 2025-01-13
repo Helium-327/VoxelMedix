@@ -23,9 +23,9 @@ from torch.nn import functional as F
 
 from torchinfo import summary
 
-class SE_Block(nn.Module):
+class SE(nn.Module):
     def __init__(self, in_channels, reduction_ratio=4):
-        super(SE_Block, self).__init__()
+        super(SE, self).__init__()
 
         if in_channels // reduction_ratio <= 0:
                     raise ValueError(f"Reduction ratio {reduction_ratio} is too large for the number of input channels {in_channels}.")
@@ -36,13 +36,6 @@ class SE_Block(nn.Module):
             nn.Conv3d(in_channels // reduction_ratio, in_channels, kernel_size=1, bias=False),
             nn.Sigmoid()
         )
-                # 初始化权重
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv3d):
-        #         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        #     elif isinstance(m, nn.BatchNorm3d):
-        #         nn.init.constant_(m.weight, 1)
-        #         nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         b, c, _, _, _ = x.size()
@@ -231,14 +224,74 @@ class CPCA(nn.Module):
         out = self.conv(out)
         return out
     
+class EMA3D(nn.Module):
+    def __init__(self, channels, factor=8):
+        super(EMA3D, self).__init__()
+        self.group = factor
+        assert channels // self.group > 0
+        self.softmax = nn.Softmax(dim=-1)
+        self.averagePooling = nn.AdaptiveAvgPool3d((1, 1, 1))  # 3D 全局平均池化
+        self.maxPooling = nn.AdaptiveMaxPool3d((1, 1, 1))      # 3D 全局最大池化
+        self.Pool_h = nn.AdaptiveAvgPool3d((None, 1, 1))       # 高度方向池化
+        self.Pool_w = nn.AdaptiveAvgPool3d((1, None, 1))       # 宽度方向池化
+        self.Pool_d = nn.AdaptiveAvgPool3d((1, 1, None))       # 深度方向池化
+
+        self.groupNorm = nn.GroupNorm(channels // self.group, channels // self.group)
+        self.conv1x1x1 = nn.Sequential(
+            nn.Conv3d(channels // self.group, channels // self.group, kernel_size=1, stride=1, padding=0),
+            nn.BatchNorm3d(channels // self.group),
+            nn.ReLU(inplace=True)
+        )
+        self.conv3x3x3 = nn.Sequential(
+            nn.Conv3d(channels // self.group, channels // self.group, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm3d(channels // self.group),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        b, c, d, h, w = x.size()
+        group_x = x.reshape(b * self.group, -1, d, h, w)  # 分组处理
+
+        # 高度、宽度、深度方向池化
+        x_c = self.maxPooling(group_x)  # [B*G, C/G, 1, 1, 1]
+        x_h = self.Pool_h(group_x)  # [B*G, C/G, D, 1, 1]
+        x_w = self.Pool_w(group_x).permute(0, 1, 3, 2, 4)  # [B*G, C/G, 1, H, 1]
+        x_d = self.Pool_d(group_x).permute(0, 1, 4, 3, 2)  # [B*G, C/G, 1, 1, W]
+
+        # 拼接并卷积
+        hwd = self.conv1x1x1(torch.cat([x_h, x_w, x_d], dim=2))  # 拼接后卷积
+        x_h, x_w, x_d = torch.split(hwd, [d, h, w], dim=2)       # 拆分
+
+        # Apply sigmoid activation
+        x_c_sigmoid = x_c.sigmoid().view(b*self.group, c // self.group, 1, 1, 1)
+        x_h_sigmoid = x_h.sigmoid().view(b*self.group, c // self.group, d, 1, 1)
+        x_w_sigmoid = x_w.sigmoid().view(b*self.group, c // self.group, 1, h, 1)
+        x_d_sigmoid = x_d.sigmoid().view(b*self.group, c // self.group, 1, 1, w)
+        
+        # Apply attention maps using broadcasting
+        x_attended = group_x * x_h_sigmoid * x_w_sigmoid * x_d_sigmoid * x_c_sigmoid
+        
+        x1 = self.groupNorm(group_x * x_attended)  # 高度、宽度、深度注意力
+        x11 = self.softmax(self.averagePooling(x1).reshape(b * self.group, -1, 1).permute(0, 2, 1))  # 全局平均池化 + softmax
+        x12 = x1.reshape(b * self.group, c // self.group, -1)
+
+        # 3x3x3 路径
+        x2 = self.conv3x3x3(group_x)  # 通过 3x3x3 卷积层
+        x21 = self.softmax(self.averagePooling(x2).reshape(b * self.group, -1, 1).permute(0, 2, 1))  # 全局平均池化 + softmax
+        x22 = x2.reshape(b * self.group, c // self.group, -1)
+
+        # 计算权重
+        weights = (torch.matmul(x11, x22) + torch.matmul(x21, x12)).reshape(b * self.group, -1, d, h, w)
+        return (group_x * weights.sigmoid()).reshape(b, c, d, h, w)
+
     
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    input_data = torch.randn(1, 16, 32, 32, 32)
+    input_data = torch.randn(1, 128, 32, 32, 32)
     input_data = input_data.to(device)
-    model = SelfAttention3D(16)
+    model = EMA3D(128)
     model = model.to(device)
     print(model)
     output = model(input_data)
     print(output.shape)
-    summary(model, (1, 16, 32, 32, 32))
+    summary(model, (1, 128, 32, 32, 32))

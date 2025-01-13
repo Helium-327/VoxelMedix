@@ -45,23 +45,23 @@ class DW_UNet3D(nn.Module):
         ch1, ch2, ch3, ch4 = channels_list
 
         # Downsample path
-        self.down1 = ResCBRBlock(in_channels, ch1, use_dw=False)
+        self.down1 = ResCBRBlock(in_channels, ch1, use_dw=True)
         self.pool1 = nn.MaxPool3d(kernel_size=2, stride=2)
-        self.down2 = RDABlock(ch1, ch2, use_dw=False)
+        self.down2 = ResCBRBlock(ch1, ch2, use_dw=True)
         self.pool2 = nn.MaxPool3d(kernel_size=2, stride=2)
-        self.down3 = RDABlock(ch2, ch3, use_dw=False)
+        self.down3 = ResCBRBlock(ch2, ch3, use_dw=True)
         self.pool3 = nn.MaxPool3d(kernel_size=2, stride=2)
 
         # Bottleneck
-        self.bottleneck = RDABlock(ch3, ch4, use_dw=False)
+        self.bottleneck = ResCBRBlock(ch3, ch4, use_dw=True)
 
         # Upsample path
         self.up1 = nn.ConvTranspose3d(ch4, ch3, kernel_size=2, stride=2)
-        self.up_conv1 = RDABlock(ch3 * 2, ch3, use_dw=False)
+        self.up_conv1 = ResCBRBlock(ch3 * 2, ch3, use_dw=True)
         self.up2 = nn.ConvTranspose3d(ch3, ch2, kernel_size=2, stride=2)
-        self.up_conv2 = RDABlock(ch2 * 2, ch2, use_dw=False)
+        self.up_conv2 = ResCBRBlock(ch2 * 2, ch2, use_dw=True)
         self.up3 = nn.ConvTranspose3d(ch2, ch1, kernel_size=2, stride=2)
-        self.up_conv3 = ResCBRBlock(ch1 * 2, ch1, use_dw=False)
+        self.up_conv3 = ResCBRBlock(ch1 * 2, ch1, use_dw=True)
 
         # Final layer
         self.final_conv = nn.Conv3d(ch1, out_channels, kernel_size=1)

@@ -7,7 +7,6 @@
 *      VERSION: v1.0
 =================================================
 '''
-from tkinter import SE
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -57,9 +56,9 @@ class ResCBRBlock(nn.Module):
         return out
 
 
-class ConvAttBlock(nn.Module):
+class RDABlock(nn.Module):
     def __init__(self, in_channels, out_channels, use_dw=False):
-        super(ConvAttBlock, self).__init__()
+        super(RDABlock, self).__init__()
         self.use_dw = use_dw
 
         if use_dw:
@@ -81,7 +80,7 @@ class ConvAttBlock(nn.Module):
         self.bn2 = nn.BatchNorm3d(out_channels)
         self.relu = nn.ReLU(inplace=True)
         
-        self.atten = SE(out_channels)
+        self.atten = EMA3D(out_channels)
         
         if in_channels != out_channels:
             self.shortcut = nn.Sequential(
@@ -779,6 +778,8 @@ class FusionMagic_v3(nn.Module):
 
 if __name__ == '__main__':
     from Attentions import *
+    
+    
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = FusionMagic(32, 128).to(device)
