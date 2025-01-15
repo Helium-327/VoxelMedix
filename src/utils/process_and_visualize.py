@@ -4,7 +4,8 @@
 *      CREATE ON: 2025/01/14 22:11:40
 *      AUTHOR: @Junyin Xiong
 *      DESCRIPTION: 可视化nii结果
-*      VERSION: v1.0
+*      VERSION: v1.0 
+*      FEATURES: 可视化映射结果的单张slice, 可以调整slice_num 进行调整
 =================================================
 '''
 
@@ -126,7 +127,7 @@ def process_and_visualize(patient_dir: str, slice_num: int, addition: str = 'UNe
 
 if __name__ == "__main__":
     # 示例调用
-    patient_dir = '/root/workspace/VoxelMedix/output/UXNET/2025-01-15_10-03-46/P1'
+    patient_dir = '/root/workspace/VoxelMedix/output/UXNET/BraTS2021_00810'
     slice_num = 100  # 选择要显示的切片编号
     addition = 'UXNet'  # 网络名称
 
