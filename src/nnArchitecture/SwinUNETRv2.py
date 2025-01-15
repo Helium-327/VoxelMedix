@@ -8,8 +8,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
+sys.path.append('/root/workspace/VoxelMedix/src/nnArchitecture')
 
-from __future__ import annotations
+# from __future__ import annotations
 
 import itertools
 from collections.abc import Sequence
@@ -27,6 +29,7 @@ from monai.networks.blocks import PatchEmbed, UnetOutBlock, UnetrBasicBlock, Une
 from monai.networks.layers import DropPath, trunc_normal_
 from monai.utils import ensure_tuple_rep, look_up_option, optional_import
 from monai.utils.deprecate_utils import deprecated_arg
+from _init_model import init_all_weights
 
 rearrange, _ = optional_import("einops", name="rearrange")
 
@@ -1046,6 +1049,8 @@ class SwinTransformer(nn.Module):
                     self.layers4c.append(layerc)
 
         self.num_features = int(embed_dim * 2 ** (self.num_layers - 1))
+        
+        self.apply(init_all_weights)
 
     def proj_out(self, x, normalize=False):
         if normalize:

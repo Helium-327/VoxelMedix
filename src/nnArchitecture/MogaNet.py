@@ -16,10 +16,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.amp import autocast
 from mamba_ssm import Mamba
-
-from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+# from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timm.models.layers import trunc_normal_, DropPath
-from timm.models.registry import register_model
+# from timm.models.registry import register_model
+
+from _init_model import init_all_weights
 
 def build_act_layer(act_type):
     """Build activation layer."""
@@ -1049,7 +1050,9 @@ class MogaNet(nn.Module):
         # self.out[-1] = MSCHeadv6(channels[0], n_classes, 7)
         # self.out[-1] = MSCHead_moe(channels[0], n_classes, 7)
         # self.out[-1]=MSCHead_nonMoe_skfv3_cbam(channels[0], n_classes, 7)
-
+        self.softmax = nn.Softmax(dim=1)
+        self.apply(init_all_weights)
+        
     def forward(self, x):
         encoder_features = []  # 存储编码器输出
         decoder_features = []  # 存储解码器输出
@@ -1069,11 +1072,13 @@ class MogaNet(nn.Module):
             decoder_features.append(x_dec)  # 保存解码器特征
 
         if self.deep_supervision:
-            return [m(mask) for m, mask in zip(self.out, decoder_features)][::-1]
+            # return [m(mask) for m, mask in zip(self.out, decoder_features)][::-1]
+            return self.softmax(self.out[-1](decoder_features[-1]))
         elif self.predict_mode:
-            return self.out[-1](decoder_features[-1])
+            return self.softmax(self.out[-1](decoder_features[-1]))
         else:
-            return x_dec, self.out[-1](decoder_features[-1])
+            # return x_dec, self.out[-1](decoder_features[-1])
+            return self.softmax(self.out[-1](decoder_features[-1]))
 
 
 if __name__ == "__main__":
@@ -1084,6 +1089,6 @@ if __name__ == "__main__":
     # print(y[0].shape)
     # summary(model, input_size=(2, 1, 48, 192, 192), device="cuda:4", depth=5)
     from ptflops import get_model_complexity_info
-    macs, params = get_model_complexity_info(model, (4,128, 128, 128), as_strings=True, print_per_layer_stat=True, verbose=True)
+    macs, params = get_model_complexity_info(model, (4, 128, 128, 128), as_strings=True, print_per_layer_stat=True, verbose=True)
     print(f'Computational complexity: {macs}')
     print(f'Number of parameters: {params}')

@@ -7,11 +7,13 @@
 *      VERSION: v1.0
 =================================================
 '''
-
+import sys
+sys.path.append('/root/workspace/VoxelMedix/src/nnArchitecture')
 from ast import List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from _init_model import init_all_weights
 
 """----------------------- 参数打印函数 -----------------------"""
 def print_model_summary(model, input_data, device="cuda"):
@@ -26,7 +28,7 @@ def print_model_summary(model, input_data, device="cuda"):
         row_settings=["var_names"],
         device=device
     )
-    
+
     
 """---------------------------------------- UNet3D 基座类 ----------------------------------------"""
 class BaseUNet3D(nn.Module):
@@ -69,15 +71,9 @@ class BaseUNet3D(nn.Module):
         
         self.softmax = nn.Softmax(dim=1)
         
-        self._init_weights()
+        self.apply(init_all_weights)
 
-    def _init_weights(self):
-        for m in self.modules():
-            if isinstance(m, (nn.Conv3d, nn.ConvTranspose3d)):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, (nn.BatchNorm3d, nn.GroupNorm)):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+
 
     def forward(self, x):
         # encodersample

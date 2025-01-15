@@ -22,6 +22,7 @@ from functools import partial
 from typing import Optional, Callable
 DropPath.__repr__ = lambda self: f"timm.DropPath({self.drop_prob})"
 
+from _init_model import init_all_weights
 # import mamba_ssm.selective_scan_fn (in which causal_conv1d is needed)
 try:
     from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, selective_scan_ref
@@ -1551,7 +1552,7 @@ class SingleBaselinev5(nn.Module):
         self.out = nn.ModuleList(
             [Out(channels[depth - i - 1], n_classes) for i in range(depth)]
         )
-        
+        self.apply(init_all_weights)
 
     def forward(self, x):
         encoder_features = []  # 存储编码器输出

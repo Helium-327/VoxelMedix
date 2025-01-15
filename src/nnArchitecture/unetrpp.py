@@ -7,6 +7,8 @@
 *      VERSION: v1.0
 =================================================
 '''
+import sys
+sys.path.append('/root/workspace/VoxelMedix/src/nnArchitecture')
 
 from torch import nn
 from typing import Tuple, Union
@@ -37,23 +39,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 import math
-
-
-def _init_weights(self):
-    for m in self.modules():
-        if isinstance(m, (nn.Conv3d, nn.ConvTranspose3d)):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        elif isinstance(m, (nn.BatchNorm3d, nn.GroupNorm)):
-            nn.init.constant_(m.weight, 1)
-            nn.init.constant_(m.bias, 0)
-        elif isinstance(m, nn.Linear):
-            init.xavier_normal_(m.weight)
-            if m.bias is not None:
-                init.constant_(m.bias, 0)
-        elif isinstance(m, nn.LayerNorm):
-            init.constant_(m.weight, 1)
-            init.constant_(m.bias, 0)
-
+from _init_model import init_all_weights
+    
 def maybe_to_torch(d):
     if isinstance(d, list):
         d = [maybe_to_torch(i) if not isinstance(i, torch.Tensor) else i for i in d]
@@ -1551,7 +1538,7 @@ class UNETR_PP(SegmentationNetwork):
             self.out2 = UnetOutBlock(spatial_dims=3, in_channels=feature_size * 2, out_channels=out_channels)
             self.out3 = UnetOutBlock(spatial_dims=3, in_channels=feature_size * 4, out_channels=out_channels)
         self.softmax  = nn.Softmax(dim=1)
-        self.apply(_init_weights)
+        self.apply(init_all_weights)
         
     def proj_feat(self, x, hidden_size, feat_size):
         x = x.view(x.size(0), feat_size[0], feat_size[1], feat_size[2], hidden_size)

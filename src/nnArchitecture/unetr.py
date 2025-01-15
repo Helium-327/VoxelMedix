@@ -19,7 +19,9 @@
 =================================================
 ✅ 测试完成
 '''
-from __future__ import annotations
+import sys
+sys.path.append('/root/workspace/VoxelMedix/src/nnArchitecture')
+# from __future__ import annotations
 
 from collections.abc import Sequence
 import torch
@@ -28,36 +30,7 @@ from monai.networks.blocks.dynunet_block import UnetOutBlock
 from monai.networks.blocks.unetr_block import UnetrBasicBlock, UnetrPrUpBlock, UnetrUpBlock
 from monai.networks.nets.vit import ViT
 from monai.utils import deprecated_arg, ensure_tuple_rep
-import torch.nn.init as init
-
-def _init_weights(module):
-    """
-    初始化模型的权重。
-    """
-    if isinstance(module, nn.Linear):
-        # 全连接层使用Xavier均匀初始化
-        nn.init.xavier_uniform_(module.weight)
-        if module.bias is not None:
-            nn.init.constant_(module.bias, 0)
-    elif isinstance(module, nn.Conv3d):
-        # 卷积层使用Kaiming正态分布初始化
-        nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
-        if module.bias is not None:
-            nn.init.constant_(module.bias, 0)
-    elif isinstance(module, nn.LayerNorm):
-        # LayerNorm层权重设为1，偏置设为0
-        if module.weight is not None:
-            nn.init.constant_(module.weight, 1)
-        if module.bias is not None:
-            nn.init.constant_(module.bias, 0)
-    elif isinstance(module, nn.InstanceNorm3d):
-        # InstanceNorm层权重设为1，偏置设为0
-        if module.weight is not None:
-            nn.init.constant_(module.weight, 1)
-        if module.bias is not None:
-            nn.init.constant_(module.bias, 0)
-    # else:
-        # print(f"Unknown module type: {type(module)}")
+from _init_model import init_all_weights
             
 class UNETR(nn.Module):
     """
@@ -236,7 +209,7 @@ class UNETR(nn.Module):
         # 投影相关参数
         self.proj_axes = (0, spatial_dims + 1) + tuple(d + 1 for d in range(spatial_dims))
         self.proj_view_shape = list(self.feat_size) + [self.hidden_size]
-        self.apply(_init_weights)
+        self.apply(init_all_weights)
 
     def proj_feat(self, x):
         """将特征投影到指定维度。"""

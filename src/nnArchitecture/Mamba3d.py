@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 import torch.distributions as td
 from torch.amp import autocast
-
+from _init_model import init_all_weights
 # Third-party libraries
 from mamba_ssm import Mamba
 from einops import rearrange, repeat
@@ -26,29 +26,23 @@ DropPath.__repr__ = lambda self: f"timm.DropPath({self.drop_prob})"
 
 import torch.nn as nn
 
+
+
 def init_all_weights(m):
-    if isinstance(m, (nn.Linear, nn.Conv3d)):
+    if isinstance(m, nn.Linear):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        if isinstance(m, nn.Linear) and m.bias is not None:
+            nn.init.constant_(m.bias, 0)
+    elif isinstance(m, (nn.Conv1d, nn.Conv2d, nn.Conv3d)):
         if m.weight is not None:
             nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
         if m.bias is not None:
             nn.init.constant_(m.bias, 0.0)
-    elif isinstance(m, (nn.LayerNorm, nn.InstanceNorm3d)):
+    elif isinstance(m, (nn.LayerNorm, nn.InstanceNorm3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.GroupNorm)):
         if m.weight is not None:
             nn.init.constant_(m.weight, 1.0)
         if m.bias is not None:
             nn.init.constant_(m.bias, 0.0)
-    elif hasattr(m, 'A') or hasattr(m, 'B') or hasattr(m, 'C') or hasattr(m, 'D'):
-        if hasattr(m, 'A') and m.A is not None:
-            nn.init.xavier_normal_(m.A)
-        if hasattr(m, 'B') and m.B is not None:
-            nn.init.xavier_normal_(m.B)
-        if hasattr(m, 'C') and m.C is not None:
-            nn.init.xavier_normal_(m.C)
-        if hasattr(m, 'D') and m.D is not None:
-            nn.init.constant_(m.D, 0.0)
-    # 可以添加更多类型的模块初始化
-    else:
-        pass  # 保持默认初始化
 
 # import mamba_ssm.selective_scan_fn (in which causal_conv1d is needed)
 try:
@@ -709,6 +703,7 @@ class TripleLine3DFusion(nn.Module):
         output = residual_output + input_features
         
         return output
+    
 class ConvNeXtConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, expand_rate=4,stride=1):
         super(ConvNeXtConv, self).__init__()
@@ -786,6 +781,7 @@ class GatedMLP(nn.Module):#统合层间关系，并增强相邻层之间的权�
         # x = self.conv_branch(x.unsqueeze(0))
         gate_output = self.gate_branch(x)
         return torch.sigmoid(gate_output.unsqueeze(-1).unsqueeze(-1))
+    
 class WithoutChannelSliceAttention(nn.Module):
     def __init__(self, num_slice,in_channel,is_cat=True):
         super().__init__()
@@ -826,6 +822,7 @@ class WithoutChannelSliceAttention(nn.Module):
         slice_attention = self.slice_attention_layer(out.transpose(1,0)).transpose(1,0)#计算切片注意力
         slice_attention_result = slice_attention * x
         return slice_attention_result + x
+    
 class CatSpceialDualAttention(nn.Module):
     def __init__(self, num_slice,in_channel,is_cat=True):
         super().__init__()
@@ -906,6 +903,7 @@ class SpceialDualAttention(nn.Module):
         slice_attention = self.slice_attention_layer(out.transpose(1,0)).transpose(1,0)#计算切片注意力
         slice_attention_result = slice_attention * channel_attention_result
         return slice_attention_result + x
+    
 class DenseDualAttention(nn.Module):
     def __init__(self, num_slice,in_channel,is_cat=True,kernel_size=4):
         super().__init__()
@@ -1614,12 +1612,14 @@ class Mamba3d(nn.Module):
                 # print(x_dec.shape)
 
         if self.deep_supervision:
-            return [m(mask) for m, mask in zip(self.out, decoder_features)][::-1]
+            # return [m(mask) for m, mask in zip(self.out, decoder_features)][::-1]
+            return self.softmax(self.out[-1](decoder_features[-1]))
         elif self.predict_mode:
             return self.softmax(self.out[-1](decoder_features[-1]))
         else:
             return self.softmax(self.out[-1](decoder_features[-1]))
             # return x_dec, self.out[-1](decoder_features[-1])
+        
 
 
 if __name__ == "__main__":

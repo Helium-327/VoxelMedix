@@ -4,7 +4,10 @@ import copy
 from torch import nn
 from einops import rearrange
 from functools import partial
+from _init_model import init_all_weights
 
+
+            
 def build_segformer3d_model(config=None):
     model = SegFormer3D(
         in_channels=config["model_parameters"]["in_channels"],
