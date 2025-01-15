@@ -13,7 +13,7 @@ training:
   test_length: 2
 
 model:
-  name: "mamba3d"
+  name: "moga"
   in_channel: 4
   mid_channel: 32
   out_channel: 4

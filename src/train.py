@@ -308,6 +308,7 @@ def train(model, Metrics, train_loader,  val_loader, test_loader, scaler, optimi
         output_path=output_path, 
         model=model,
         optimizer=optimizer, 
+        Metricer=Metrics,
         scaler=scaler,
         ckpt_path=final_model_path,
         window_size=(128, 128, 128), 

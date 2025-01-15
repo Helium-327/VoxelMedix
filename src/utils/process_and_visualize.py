@@ -4,8 +4,8 @@
 *      CREATE ON: 2025/01/14 22:11:40
 *      AUTHOR: @Junyin Xiong
 *      DESCRIPTION: 可视化nii结果
-*      VERSION: v1.0 
-*      FEATURES: 可视化映射结果的单张slice, 可以调整slice_num 进行调整
+*      VERSION: v2.0 
+*      FEATURES: 可视化映射结果的GIF, 可以滑动
 =================================================
 '''
 
@@ -13,6 +13,7 @@ import os
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 def get_paths_dict(patient_dir: str) -> dict:
     """
@@ -99,7 +100,48 @@ def show_slice_dict(result_dir:str, single_slices: dict, mask_slice_dict: dict, 
     plt.tight_layout()
     plt.show()
 
-def process_and_visualize(patient_dir: str, slice_num: int, addition: str = 'UNet'):
+
+def create_gif(result_dir: str, data_dict: dict, axis: str = 'z', addition: str = 'UNet'):
+    fig, axs = plt.subplots(1, 2, figsize=(20, 10))
+    
+    def update(frame):
+        axs[0].clear()
+        axs[1].clear()
+        
+        if axis == 'x':
+            original = data_dict['t1'][frame, :, :]
+            mask = data_dict['mask'][frame, :, :]
+            pred = data_dict['pred'][frame, :, :]
+        elif axis == 'y':
+            original = data_dict['t1'][:, frame, :]
+            mask = data_dict['mask'][:, frame, :]
+            pred = data_dict['pred'][:, frame, :]
+        elif axis == 'z':
+            original = data_dict['t1'][:, :, frame]
+            mask = data_dict['mask'][:, :, frame]
+            pred = data_dict['pred'][:, :, frame]
+        else:
+            raise ValueError("Invalid axis. Choose from 'x', 'y', or 'z'.")
+        _plot_slice(axs[0], original, mask, 'Ground Truth')
+        _plot_slice(axs[1], original, pred, f'Prediction on {addition}')
+        
+        return axs
+
+    if axis == 'x':
+        num_frames = data_dict['t1'].shape[0]
+    elif axis == 'y':
+        num_frames = data_dict['t1'].shape[1]
+    elif axis == 'z':
+        num_frames = data_dict['t1'].shape[2]
+    
+    ani = FuncAnimation(fig, update, frames=num_frames, interval=100, blit=False)
+    
+    gif_path = os.path.join(result_dir, f'{addition}_animation_{axis}.gif')
+    ani.save(gif_path, writer='pillow', fps=10)
+    plt.close()
+    print('gif 创建成功')
+    
+def process_and_visualize(patient_dir: str, slice_num: int, addition: str = 'UNet' , axis: str = 'z', create_gif_flag: bool = False):
     """
     串联所有函数，通过接受 NIfTI 文件路径直接输出结果。
     
@@ -120,9 +162,9 @@ def process_and_visualize(patient_dir: str, slice_num: int, addition: str = 'UNe
     # 4. 显示真实掩膜和预测结果的对比图
     show_mapped_slice_mask_to_data(patient_dir, slices, addition)
     
-    # # 5. 显示多个子区域的分割结果
-    # show_slice_dict(slices, subarea_slice_mask, addition=addition)
-    # show_slice_dict(slices, subarea_slice_pred, addition=addition)
+    # 5. 创建 GIF 动图
+    if create_gif_flag:
+        create_gif(patient_dir, data_dict, axis, addition)
 
 
 if __name__ == "__main__":
@@ -131,4 +173,4 @@ if __name__ == "__main__":
     slice_num = 100  # 选择要显示的切片编号
     addition = 'UXNet'  # 网络名称
 
-    process_and_visualize(patient_dir, slice_num, addition)
+    process_and_visualize(patient_dir, slice_num, addition, create_gif_flag=True)
