@@ -11,12 +11,13 @@ from genericpath import exists
 import sys
 sys.path.append('/root/workspace/VoxelMedix/src')
 
-# 多进程
-import multiprocessing
-from multiprocessing import Pool, cpu_count
-
+# # 多进程
+# import multiprocessing
+# from multiprocessing import Pool, cpu_count
+import pandas as pd
 import os
 import torch
+import shutil
 import argparse
 import numpy as np
 from tqdm import tqdm
@@ -33,91 +34,144 @@ from datasets.BraTS21 import BraTS21_3D
 from datasets.transforms import Compose, FrontGroundNormalize, RandomCrop3D, ToTensor
 from loss_function import DiceLoss, CELoss
 from evaluate.metrics import *
-from utils.logger_tools import custom_logger
+from utils.logger_tools import custom_logger, get_current_date, get_current_time
 from utils.ckpt_tools import load_checkpoint
 
-from nnArchitecture.unet3d import UNet3D
+from nnArchitecture.unet3d import *
+from nnArchitecture.uxnet import UXNET
 from nnArchitecture.segFormer3d import SegFormer3D
-from nnArchitecture.Mamba3d import Mamba3d
 from nnArchitecture.MogaNet import MogaNet
+from nnArchitecture.AtentionUNet import AttentionUnet
+from nnArchitecture.Mamba3d import Mamba3d
+from nnArchitecture.unetr import UNETR
+from nnArchitecture.unetrpp import UNETR_PP
+from nnArchitecture.SwinUNETRv2 import SwinUNETR
+# from nnArchitecture.dw_unet3d import  DW_UNet3D
 
 # from utils.plot_tools.plot_results import NiiViewer
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-model = UNet3D(in_channels=4, out_channels=4)
-optimizer = AdamW(model.parameters(), lr=0.001, betas=(0.9, 0.99), weight_decay=1e-5)
-scaler = GradScaler()
-Metricer = EvaluationMetrics()
-Affine = np.array([[ -1.,  -0.,  -0.,   0.],
-                [ -0.,  -1.,  -0., 239.],
-                [  0.,   0.,   1.,   0.],
-                [  0.,   0.,   0.,   1.]])
-# affine = -np.eye(4) #! 调整图像的方向
 
-
-test_datasets_paths = '/root/workspace/VoxelMedix/data/raw/brats21_original/test.csv'
-test_trans = Compose([
-    ToTensor(),
-    RandomCrop3D(size=(155, 240, 240)),
-    FrontGroundNormalize(),
-    ])
-test_dataset = BraTS21_3D(
-    data_file=test_datasets_paths,
-    transform=test_trans,
-    local_train=True,
-    length=10
-    )
-
-test_loader = DataLoader(
-    dataset=test_dataset,
-    batch_size=1,
-    shuffle=False,
-    num_workers=4,
-    pin_memory=True,
-    persistent_workers=False   # 减少 worker 初始化时间
-)
-
-model_name = model.__class__.__name__
-ckpt_path = '/root/workspace/VoxelMedix/results/2025-01-11/2025-01-11_22-04-46/checkpoints/best@e98_UNet3D__diceloss0.1403_dice0.8676_2025-01-11_22-04-46_13.pth'
-output_path = os.path.join('/root/workspace/VoxelMedix/output', model_name)
-
-def inference(
-    test_loader=test_loader, 
-    output_path=output_path, 
-    model=model,
-    optimizer=optimizer,
-    scaler = scaler,
-    metrics=Metricer,
-    ckpt_path=ckpt_path,
-    affine=None, 
-    window_size=(128, 128, 128), 
-    stride_ratio=0.5, 
-    save_flag=True,
-    device=DEVICE
-    ):
-    if affine is not None:
-        affine = affine
+def load_model(model_name, in_channels=4, out_channels=4):
+    """加载模型"""
+    if model_name == 'unet3d':
+        model = UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'soft_unet3d':
+        model = soft_UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'cad_unet3d':
+        model = CAD_UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'soft_cad_unet3d':
+        model = soft_CAD_UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'cadi_unet3d':
+        model = CADI_UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'soft_cadi_unet3d':
+        model = soft_CADI_UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'dw_unet3d':
+        model = DW_UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'soft_dw_unet3d':
+        model = soft_DW_UNet3D(in_channels=in_channels, out_channels=out_channels)
+    elif model_name == 'segformer3d':
+        model = SegFormer3D(in_channels=in_channels, num_classes=out_channels)
+    elif model_name == 'moga':
+        model = MogaNet(in_channels=in_channels, n_classes=out_channels)
+    elif model_name == 'attention_unet':
+        model = AttentionUnet(
+            spatial_dims=3,
+            in_channels=in_channels,
+            out_channels=out_channels,
+            channels=[32, 64, 128, 256, 320],
+            strides=[2, 2, 2, 2],
+        )
+    elif model_name == 'mamba3d':
+        model = Mamba3d(in_channels=in_channels, n_classes=out_channels)
+    elif model_name == 'unetr':
+        model = UNETR(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            img_size=(128, 128, 128),
+            feature_size=16,
+            hidden_size=768,
+            num_heads=12,
+            spatial_dims=3,
+            predict_mode=True  # 设置为预测模式
+        )
+    elif model_name == 'unetrpp':
+        model = UNETR_PP(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            feature_size=16,
+            hidden_size=256,
+            num_heads=8,
+            pos_embed="perceptron",
+            norm_name="instance",
+            dropout_rate=0.1,
+            depths=[3, 3, 3, 3],
+            dims=[32, 64, 128, 256],
+            conv_op=nn.Conv3d,
+            do_ds=False,
+        )
+    elif model_name == 'uxnet':
+        model = UXNET(in_channels=in_channels, out_channels=out_channels)
     else:
+        raise ValueError(f"Incorrect input of parameter model_name:{model_name}")
+    
+    model = model.to(DEVICE)
+    return model
+
+
+
+def load_data(test_csv, local_train=True, test_length=10, batch_size=1, num_workers=4):
+    """加载数据集"""
+    TransMethods_test = Compose([
+        ToTensor(),
+        RandomCrop3D(size=(155, 240, 240)),
+        FrontGroundNormalize(),
+    ])
+
+    test_dataset = BraTS21_3D(
+        data_file=test_csv,
+        transform=TransMethods_test,
+        local_train=local_train,
+        length=test_length,
+    )
+    
+    test_loader = DataLoader(
+        dataset=test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
+        persistent_workers=True  # 减少 worker 初始化时间
+    )
+    
+    print(f"已加载测试数据: {len(test_loader)}")
+    return test_loader
+
+def inference(test_df, test_loader, output_path, model, Metricer, scaler, optimizer, ckpt_path, affine=None, window_size=(128, 128, 128), stride_ratio=0.5, save_flag=True, device=DEVICE):
+    if affine is None:
         affine = np.array([[ -1.,  -0.,  -0.,   0.],
-                    [ -0.,  -1.,  -0., 239.],
-                    [  0.,   0.,   1.,   0.],
-                    [  0.,   0.,   0.,   1.]])
+                           [ -0.,  -1.,  -0., 239.],
+                           [  0.,   0.,   1.,   0.],
+                           [  0.,   0.,   0.,   1.]])
+    
     # 加载模型权重
-    model, optimizer, scaler, start_epoch, best_val_loss = load_checkpoint(model, optimizer, scaler, ckpt_path)
+    model, optimizer, scaler, _, _ = load_checkpoint(model, optimizer, scaler, ckpt_path)
     model.to(device)
     
     Metrics_list = np.zeros((7, 4))
         
     for i, data in enumerate(tqdm(test_loader)):
         vimage, vmask = data[0], data[1]
-        pred_vimage= slide_window_pred(model, vimage, device, window_size, stride_ratio=1)
+        pred_vimage = slide_window_pred(model, vimage, device, window_size, stride_ratio=1)
+        
+        # 获取病例号
+        case_id = test_df.iloc[i]['patient_idx']
         
         # 保存预测结果nii文件
         os.makedirs(output_path, exist_ok=True)
         if save_flag:
-            save_nii(pred_vimage, vimage, vmask, output_path, affine, i)
+            save_nii(test_df, pred_vimage, vmask, output_path, affine, case_id)
         
         # 评估指标
         metrics = Metricer.update(pred_vimage, vmask)
@@ -126,7 +180,6 @@ def inference(
     Metrics_list /= len(test_loader)
 
     test_scorce = {}
-    # 记录验证结果
     test_scorce['Dice_scores'] = Metrics_list[0] 
     test_scorce['Jaccard_scores'] = Metrics_list[1]
     test_scorce['Accuracy_scores'] = Metrics_list[2]
@@ -134,10 +187,10 @@ def inference(
     test_scorce['Recall_scores'] = Metrics_list[4]
     test_scorce['F1_scores'] = Metrics_list[5]
     test_scorce['F2_scores'] = Metrics_list[6]
+    
     metric_table_header = ["Metric_Name", "MEAN", "ET", "TC", "WT"]
     metric_table_left = ["Dice", "Jaccard", "Accuracy", "Precision", "Recall", "F1", "F2"]
 
-    # 优化点：直接通过映射获取指标名称，避免重复字符串格式化
     metric_scores_mapping = {metric: test_scorce[f"{metric}_scores"] for metric in metric_table_left}
     metric_table = [[metric,
                     format_value(metric_scores_mapping[metric][0]),
@@ -152,18 +205,7 @@ def inference(
     print(metrics_info)
 
 def slide_window_pred(model, test_data, device, window_size, stride_ratio=1):
-    """在 3D 数据上执行滑动窗口预测。
-
-    参数:
-        model: 用于预测的模型。
-        test_data: 输入数据张量。
-        device: 运行模型的设备。
-        window_size: 滑动窗口的大小。
-        stride_ratio: 步幅与窗口大小的比例。
-
-    返回:
-        pred_mask: 预测的掩码。
-    """
+    """在 3D 数据上执行滑动窗口预测。"""
     N, C, D, H, W = test_data.shape
     model.eval()
     assert 0 < stride_ratio <= 1, "stride_ratio 必须在 0 和 1 之间"
@@ -174,7 +216,6 @@ def slide_window_pred(model, test_data, device, window_size, stride_ratio=1):
     with torch.no_grad():
         with autocast(device_type='cuda'):
             pred_mask = torch.zeros_like(test_data, device=device)
-            # count_mask = torch.zeros_like((N, model.out_channels, D, H, W), device=device)
             for d in range(0, D, stride_size[0]):
                 for h in range(0, H, stride_size[1]):
                     for w in range(0, W, stride_size[2]):
@@ -192,99 +233,54 @@ def slide_window_pred(model, test_data, device, window_size, stride_ratio=1):
                         pred = pred.float()  # 确保预测结果是浮点型
 
                         pred_mask[:, :, d_start:d_end, h_start:h_end, w_start:w_end] += pred
-                        # count_mask[:, :, d_start:d_end, h_start:h_end, w_start:w_end] += 1
 
-            # 避免除以零
-            # count_mask[count_mask == 0] = 1
-            # pred_mask /= count_mask
             pred_mask = pred_mask.cpu()
 
     return pred_mask
 
-def save_nii(pred_vimage, vimage, vmask, output_path, affine, i):
-    """将输入、掩码和预测输出保存为 NIfTI 文件。
-
-    参数:
-        pred_vimage: 预测的输出张量。
-        vimage: 输入图像张量。
-        vmask: 真实掩码张量。
-        output_path: 保存文件的目录。
-        affine: NIfTI 文件的仿射矩阵。
-        i: 当前样本的索引。
-    """
+def save_nii(test_df, pred_vimage, vmask, output_path, affine, case_id):
+    """将输入、掩码和预测输出保存为 NIfTI 文件。"""
     test_output_argmax = torch.argmax(pred_vimage, dim=1).to(dtype=torch.int64)
     num = 0
 
-    save_input_t1 = vimage[num, 0, ...].permute(1, 2, 0).cpu().detach().numpy().astype(np.float32)
-    save_input_t1ce = vimage[num, 1, ...].permute(1, 2, 0).cpu().detach().numpy().astype(np.float32)
-    save_input_t2 = vimage[num, 2, ...].permute(1, 2, 0).cpu().detach().numpy().astype(np.float32)
-    save_input_flair = vimage[num, 3, ...].permute(1, 2, 0).cpu().detach().numpy().astype(np.float32)
     save_input_mask = vmask[num, ...].permute(1, 2, 0).cpu().detach().numpy().astype(np.int8)
     save_pred = test_output_argmax[num, ...].permute(1, 2, 0).cpu().detach().numpy().astype(np.int8)
 
-    nii_input_t1 = nib.Nifti1Image(save_input_t1, affine=affine)
-    nii_input_t1ce = nib.Nifti1Image(save_input_t1ce, affine=affine)
-    nii_input_t2 = nib.Nifti1Image(save_input_t2, affine=affine)
-    nii_input_flair = nib.Nifti1Image(save_input_flair, affine=affine)
     nii_input_mask = nib.Nifti1Image(save_input_mask, affine=affine)
     nii_pred = nib.Nifti1Image(save_pred, affine=affine)
 
-    output_path = os.path.join(output_path, f"P{i}")
+    output_path = os.path.join(output_path, f"{case_id}")
     os.makedirs(output_path, exist_ok=True)
 
-    nib.save(nii_input_t1, os.path.join(output_path, f'P{i}_test_input_t1.nii.gz'))
-    nib.save(nii_input_t1ce, os.path.join(output_path, f'P{i}_test_input_t1ce.nii.gz'))
-    nib.save(nii_input_t2, os.path.join(output_path, f'P{i}_test_input_t2.nii.gz'))
-    nib.save(nii_input_flair, os.path.join(output_path, f'P{i}_test_input_flair.nii.gz'))
-    nib.save(nii_input_mask, os.path.join(output_path, f'P{i}_test_input_mask.nii.gz'))
-    nib.save(nii_pred, os.path.join(output_path, f'P{i}_test_pred.nii.gz'))
+    nib.save(nii_input_mask, os.path.join(output_path, f'{case_id}_test_input_mask.nii.gz'))
+    nib.save(nii_pred, os.path.join(output_path, f'{case_id}_test_pred.nii.gz'))
+    
+    case_data_path = test_df.loc[test_df['patient_idx'] == case_id, 'patient_dir'].values[0]
+    for file_name in os.listdir(case_data_path):
+        src_file = os.path.join(case_data_path, file_name)
+        dst_file = os.path.join(output_path, file_name)
+        shutil.copy(src_file, dst_file)
+        
+    print(f"{case_id} 预测结果保存成功！路径：{output_path}")
 
-    print(f"P{i} 预测结果保存成功！路径：{output_path}")
-
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run inference with UXNET model.")
+    parser.add_argument('--model_name', type=str, default='uxnet', help='Model name (default: uxnet)')
+    parser.add_argument('--test_csv', type=str, default='/root/workspace/VoxelMedix/data/raw/brats21_original/test.csv', help='Path to the test dataset CSV file (default: /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv)')
+    parser.add_argument('--ckpt_path', type=str, default='/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-14_22-12-52/checkpoints/UXNET_final_model.pth', help='Path to the model checkpoint file (default: /root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-14_22-12-52/checkpoints/UXNET_final_model.pth)')
+    parser.add_argument('--output_path', type=str, default='/root/workspace/VoxelMedix/output/UXNET_2024-08-18_14-07-26', help='Output directory to save results (default: /root/workspace/VoxelMedix/output/UXNET_2024-08-18_14-07-26)')
+    return parser.parse_args()
 
 def main():
-    inference(
-    test_loader=test_loader, 
-    output_path=output_path, 
-    model=model,
-    ckpt_path=ckpt_path,
-    affine=Affine, 
-    window_size=(128, 128, 128), 
-    stride_ratio=0.5, 
-    save_flag=True,
-    device=DEVICE
-    )
-    
-    print("😃😃well done")
+    args = parse_args()
+    model = load_model(args.model_name)
+    test_loader = load_data(args.test_csv)
+    test_df = pd.read_csv(args.test_csv)
+    Metricer = EvaluationMetrics()
+    scaler = GradScaler()
+    optimizer = AdamW(model.parameters(), lr=0.0002, betas=(0.9, 0.99), weight_decay=0.00001)
+    inference(test_df, test_loader, args.output_path, model, Metricer, scaler, optimizer, args.ckpt_path)
+    print("😃😃 Well done!")
 
 if __name__ == '__main__':
-    # multiprocessing.set_start_method('spawn')
-    
-
-    # parser = argparse.ArgumentParser(description="inference args")
-
-    # parser.add_argument("--model", type=str,
-    #                     default="f_cac_unet3d", 
-    #                     help="model name")
-    # parser.add_argument("--data_scale", type=str, 
-    #                     default="small", 
-    #                     help="loading data scale")
-    # parser.add_argument("--data_len", type=int, 
-    #                     default=4, 
-    #                     help="train length")
-    # parser.add_argument("--test_csv", type=str, 
-    #                     default="./brats21_local/test.csv", 
-    #                     help="test csv file path")
-    # parser.add_argument("--ckpt_path", type=str, 
-    #                     default=None, 
-    #                     help='inference model path')
-    # parser.add_argument("--save_flag", type=bool, 
-    #                     default=True, 
-    #                     help="save flag")
-    # parser.add_argument("--outputs_root", type=str, 
-    #                     default='./outputs', 
-    #                     help="output path")
-    # args = parser.parse_args()
-
     main()
-    

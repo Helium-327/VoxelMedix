@@ -26,7 +26,16 @@ from utils.logger_tools import *
 from utils.shell_tools import *
 from utils.tb_tools import *
 from evaluate.metrics import EvaluationMetrics
+
 from nnArchitecture.unet3d import *
+from nnArchitecture.uxnet import UXNET
+from nnArchitecture.segFormer3d import SegFormer3D
+from nnArchitecture.MogaNet import MogaNet
+from nnArchitecture.AtentionUNet import AttentionUnet
+from nnArchitecture.Mamba3d import Mamba3d
+from nnArchitecture.unetr import UNETR
+from nnArchitecture.unetrpp import UNETR_PP
+from nnArchitecture.SwinUNETRv2 import SwinUNETR
 # from nnArchitecture.dw_unet3d import  DW_UNet3D
 
 from datasets.transforms import *
@@ -64,8 +73,66 @@ def load_model(args):
     elif args.model == 'dw_unet3d':
         model = DW_UNet3D(in_channels=args.in_channel, out_channels=args.out_channel)
     elif args.model == 'soft_dw__unet3d':
-        model = soft_DW_UNet3D(in_channels=args.in_channel, out_channels=args.out_channel)
-        
+        model = soft_DW_UNet3D(
+            in_channels=args.in_channel, 
+            out_channels=args.out_channel)
+    elif args.model == 'segformer3d':
+        model = SegFormer3D(
+            in_channels=args.in_channel, 
+            num_classes=args.out_channel
+            )
+    elif args.model == 'moga':
+        model = MogaNet(
+            in_channels=args.in_channel, 
+            n_classes=args.out_channel
+            )
+    elif args.model == 'attention_unet':
+        model = AttentionUnet(
+            spatial_dims=3,
+            in_channels=args.in_channel,
+            out_channels=args.out_channel,
+            channels=[32, 64, 128, 256, 320],
+            strides=[2, 2, 2, 2],
+        )
+    elif args.model == 'mamba3d':#✅
+        model = Mamba3d(
+            in_channels=4, 
+            n_classes=4
+            )
+    elif args.model == 'unetr': #✅
+        model = UNETR(
+            in_channels=args.in_channel,
+            out_channels=args.out_channel,
+            img_size=(128, 128, 128),
+            feature_size=16,
+            hidden_size=768,
+            num_heads=12,
+            spatial_dims=3,
+            predict_mode=True  # 设置为预测模式
+    )
+    elif args.model == 'unetrpp':#✅
+        model = UNETR_PP(
+            in_channels=args.in_channel,
+            out_channels=args.out_channel,  # 假设分割为2类
+            feature_size=16,
+            hidden_size=256,
+            num_heads=8,
+            pos_embed="perceptron",
+            norm_name="instance",
+            dropout_rate=0.1,
+            depths=[3, 3, 3, 3],
+            dims=[32, 64, 128, 256],
+            conv_op=nn.Conv3d,
+            do_ds=False,
+    )
+    elif args.model == 'uxnet': #✅
+        model = UXNET(
+            in_channels=args.in_channel, 
+            out_channels=args.out_channel
+            )
+    else:
+        raise ValueError(f"Incorrect input of parameter args.model:{args.model}, ")
+    
     model = model.to(DEVICE)
     
     return model
@@ -142,6 +209,17 @@ def load_data(args):
         # tioRandomNoise3d(),
         # tioRandomGamma3d()
     ])
+    
+    TransMethods_test = Compose([
+        ToTensor(),
+        RandomCrop3D(size=(155, 240, 240)),
+        FrontGroundNormalize(),
+        # tioRandomFlip3d(),
+        # tioRandomElasticDeformation3d(),
+        # tioZNormalization(),
+        # tioRandomNoise3d(),
+        # tioRandomGamma3d()
+    ])
 
     train_dataset = BraTS21_3D(
         data_file=args.train_csv,
@@ -157,6 +235,12 @@ def load_data(args):
         length=args.val_length,
     )
 
+    test_dataset = BraTS21_3D(
+        data_file=args.test_csv,
+        transform=TransMethods_test,
+        local_train=args.local_train,
+        length=args.test_length,
+    )
     setattr(args, 'train_length', len(train_dataset))
     setattr(args, 'val_length', len(val_dataset))
 
@@ -178,15 +262,44 @@ def load_data(args):
         persistent_workers=True  # 减少 worker 初始化时间
     )
     
+    test_loader = DataLoader(
+        dataset=test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        persistent_workers=True  # 减少 worker 初始化时间
+    )
+    
     print(f"已加载数据集, 训练集: {len(train_loader)}, 验证集: {len(val_loader)}")
 
-    return train_loader, val_loader
+    return train_loader, val_loader, test_loader
 
 def main(args):
     start_epoch = 0
     best_val_loss = float('inf')
     resume_tb_path = None
+    
+    """------------------------------------- 模型实例化、初始化 --------------------------------------------"""
+    # 加载模型
+    model = load_model(args)
+    # 加载优化器
+    optimizer = load_optimizer(args, model)
 
+    # 加载调度器
+    scheduler = load_scheduler(args, optimizer)
+
+    # 加载损失函数
+    loss_function = load_loss(args)
+    total_params = sum(p.numel() for p in model.parameters())
+    total_params = f'{total_params/1024**2:.2f} M'
+    print(f"Total number of parameters: {total_params}")
+    setattr(args, 'total_parms', total_params)
+    model_name = model.__class__.__name__
+    optimizer_name = optimizer.__class__.__name__
+    scheduler_name = scheduler.__class__.__name__
+    loss_name = loss_function.__class__.__name__
+    
     """------------------------------------- 定义或获取路径 --------------------------------------------"""
     if args.resume:
         resume_path = args.resume
@@ -198,7 +311,7 @@ def main(args):
         logs_path = os.path.join(logs_dir, logs_file_name[0])
     else:
         os.makedirs(args.results_root, exist_ok=True)
-        results_dir = os.path.join(args.results_root, get_current_date())
+        results_dir = os.path.join(args.results_root, ('_').join([model_name, loss_name, optimizer_name, scheduler_name]))       # TODO: 改成网络对应的文件夹
         results_dir = create_folder(results_dir)
         logs_dir = os.path.join(results_dir, 'logs')
         logs_path = os.path.join(logs_dir, f'{get_current_date()}.log')
@@ -208,12 +321,6 @@ def main(args):
     exp_commit = args.commit if args.commit else input("请输入本次实验的更改内容: ")
     write_commit_file(os.path.join(results_dir, 'commits.md'), exp_commit)
 
-    """------------------------------------- 模型实例化、初始化 --------------------------------------------"""
-    model = load_model(args)
-    total_params = sum(p.numel() for p in model.parameters())
-    total_params = f'{total_params/1024**2:.2f} M'
-    print(f"Total number of parameters: {total_params}")
-    setattr(args, 'total_parms', total_params)
 
     """------------------------------------- 断点续传 --------------------------------------------"""
     if args.resume:
@@ -228,16 +335,8 @@ def main(args):
         print(f"Refix resume tb data step {resume_tb_path} up to step {start_epoch}")
 
     # 加载数据集
-    train_loader, val_loader = load_data(args)
+    train_loader, val_loader, test_loader = load_data(args)
 
-    # 加载优化器
-    optimizer = load_optimizer(args, model)
-
-    # 加载调度器
-    scheduler = load_scheduler(args, optimizer)
-
-    # 加载损失函数
-    loss_function = load_loss(args)
 
     # 记录训练配置
     log_params(vars(args), logs_path)
@@ -247,6 +346,7 @@ def main(args):
           Metrics=MetricsGo, 
           train_loader=train_loader,
           val_loader=val_loader, 
+          test_loader=test_loader,
           scaler=scaler, 
           optimizer=optimizer,
           scheduler=scheduler,
@@ -255,8 +355,10 @@ def main(args):
           device=DEVICE, 
           results_dir=results_dir,
           logs_path=logs_path,
+          output_path=args.output_path,
           start_epoch=start_epoch,
           best_val_loss=best_val_loss,
+          test_csv=args.test_csv,
           tb=args.tb,
           interval=args.interval,
           save_max=args.save_max,

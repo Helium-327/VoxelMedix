@@ -9,13 +9,16 @@
 
 import os
 import time
+import shutil
 import torch
+import pandas as pd
 import logging
 import readline # 解决input()无法使用Backspace的问题, ⚠️不能删掉
 
 from tabulate import tabulate
 from torch.utils.tensorboard import SummaryWriter 
 
+from evaluate.inference import inference
 from train_and_val import train_one_epoch, val_one_epoch
 
 from utils.ckpt_tools import *
@@ -44,13 +47,14 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def train(model, Metrics, train_loader, val_loader, scaler, optimizer, scheduler, loss_function, 
-          num_epochs, device, results_dir, logs_path, start_epoch, best_val_loss, 
+def train(model, Metrics, train_loader,  val_loader, test_loader, scaler, optimizer, scheduler, loss_function, 
+          num_epochs, device, results_dir, logs_path, output_path, start_epoch, best_val_loss, test_csv,
           tb=False,  
           interval=10, 
           save_max=10, 
           early_stopping_patience=10,
-          resume_tb_path=None):
+          resume_tb_path=None,
+          ):
     """
     模型训练流程
     :param model: 模型
@@ -70,6 +74,7 @@ def train(model, Metrics, train_loader, val_loader, scaler, optimizer, scheduler
     optimizer_name = optimizer.__class__.__name__
     scheduler_name = scheduler.__class__.__name__
     loss_func_name = loss_function.__class__.__name__
+    test_df = pd.read_csv(test_csv)
 
     if resume_tb_path:
         tb_dir = resume_tb_path
@@ -253,7 +258,6 @@ def train(model, Metrics, train_loader, val_loader, scaler, optimizer, scheduler
                             f"ET : {val_scores['Dice_scores'][1]:.4f}\t"\
                             f"TC : {val_scores['Dice_scores'][2]:.4f}\t" \
                             f"WT : {val_scores['Dice_scores'][3]:.4f}\n\n")
-                    
                 # 保存最佳模型
                 save_counter += 1
                 best_ckpt_path = os.path.join(ckpt_dir, f'best@e{best_epoch}_{model_name}__{loss_func_name.lower()}{best_val_loss:.4f}_dice{best_dice:.4f}_{date_time_str}_{save_counter}.pth')
@@ -273,10 +277,46 @@ def train(model, Metrics, train_loader, val_loader, scaler, optimizer, scheduler
                     if early_stopping_counter >= early_stopping_patience:
                         print(f"🎃 Early stopping at epoch {epoch} due to no improvement in validation loss.")
                         break
-                
+            
     print(f"😃😃😃Train finished. Best val loss: 👉{best_val_loss:.4f} at epoch {best_epoch}")
     # 训练完成后关闭 SummaryWriter
     writer.close() 
+    # 将最后一个保存的权重文件重命名为 final_model.pth
+
+    # 获取检查点目录中所有.pth文件
+    ckpt_files = [f for f in os.listdir(ckpt_dir) if f.endswith('.pth')]
+
+    if ckpt_files:
+        # 按最后修改时间排序，获取最新的文件
+        latest_ckpt = max(ckpt_files, key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f)))
+        
+        # 构建完整路径
+        latest_ckpt_path = os.path.join(ckpt_dir, latest_ckpt)
+        final_model_path = os.path.join(ckpt_dir, f'{model_name}_final_model.pth')
+        
+        # 复制文件
+        shutil.copy(latest_ckpt_path, final_model_path)
+        print(f"✅ 最后一个权重文件已复制为 {final_model_path}")
+    else:
+        print(f"⚠️ 没有找到任何权重文件在 {ckpt_dir}")
+    
+    output_path = os.path.join(output_path, model_name, get_current_date()+'_'+get_current_time())
+    # 自动推理
+    inference(
+        test_df=test_df,
+        test_loader=test_loader, 
+        output_path=output_path, 
+        model=model,
+        optimizer=optimizer, 
+        scaler=scaler,
+        ckpt_path=final_model_path,
+        window_size=(128, 128, 128), 
+        stride_ratio=0.5, 
+        save_flag=True,
+        device=DEVICE
+        )
+    print(f"🎉🎉🎉推理完成，结果保存在 {output_path}")
+    
     
 
     
