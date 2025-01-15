@@ -265,10 +265,10 @@ def save_nii(test_df, pred_vimage, vmask, output_path, affine, case_id):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run inference with UXNET model.")
-    parser.add_argument('--model_name', type=str, default='uxnet', help='Model name (default: uxnet)')
+    parser.add_argument('--model_name', type=str, default='mamba3d', help='Model name (default: uxnet)')
     parser.add_argument('--test_csv', type=str, default='/root/workspace/VoxelMedix/data/raw/brats21_original/test.csv', help='Path to the test dataset CSV file (default: /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv)')
-    parser.add_argument('--ckpt_path', type=str, default='/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-14_22-12-52/checkpoints/UXNET_final_model.pth', help='Path to the model checkpoint file (default: /root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-14_22-12-52/checkpoints/UXNET_final_model.pth)')
-    parser.add_argument('--output_path', type=str, default='/root/workspace/VoxelMedix/output/UXNET_2024-08-18_14-07-26', help='Output directory to save results (default: /root/workspace/VoxelMedix/output/UXNET_2024-08-18_14-07-26)')
+    parser.add_argument('--ckpt_path', type=str, default='/root/workspace/VoxelMedix/results/Mamba3d_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_03-01-11/checkpoints/best@e12_Mamba3d__diceloss0.2657_dice0.7270_2025-01-15_03-01-11_5.pth', help='Path to the model checkpoint file (default: /root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-14_22-12-52/checkpoints/UXNET_final_model.pth)')
+    parser.add_argument('--output_path', type=str, default='/root/workspace/VoxelMedix/output/Mamba3d', help='Output directory to save results (default: /root/workspace/VoxelMedix/output/UXNET)')
     return parser.parse_args()
 
 def main():
