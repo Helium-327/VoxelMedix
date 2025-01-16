@@ -63,7 +63,7 @@ class DiceLoss(BaseLoss):
         for sub_area, pred, mask in zip(self.sub_areas, pred_list, mask_list):
             intersection = (pred * mask).sum(dim=(-3, -2, -1))
             union = pred.sum(dim=(-3, -2, -1)) + mask.sum(dim=(-3, -2, -1))
-            dice_c = (2. * intersection + self.smooth) / (union + self.smooth)
+            dice_c = (2. * intersection) / (union + self.smooth)
             loss_dict[sub_area] = 1. - dice_c.mean()
 
         area_et_loss = loss_dict['ET']
