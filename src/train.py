@@ -310,7 +310,7 @@ def train(model, Metrics, train_loader,  val_loader, test_loader, scaler, optimi
         optimizer=optimizer, 
         Metricer=Metrics,
         scaler=scaler,
-        ckpt_path=final_model_path,
+        ckpt_path=latest_ckpt_path,
         window_size=(128, 128, 128), 
         stride_ratio=0.5, 
         save_flag=True,

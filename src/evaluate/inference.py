@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
+# -*- coding: UTF-8 -*-
 '''
-
-Describle:         模型评估：在训练完成之后使用测试集对模型性能进行评估，并保存评估结果
-
-Created on         2024/08/18 14:07:26
-Author:            @ Mr_Robot
-Current State:     #TODO:
+================================================
+*      CREATE ON: 2025/01/16 13:36:42
+*      AUTHOR: @Junyin Xiong
+*      DESCRIPTION: 模型推理脚本
+*      VERSION: v2.0
+*      FEATURES: 可以将权重保存到output路径下
+=================================================
 '''
 from genericpath import exists
 import sys
@@ -24,7 +26,10 @@ from tqdm import tqdm
 import nibabel as nib
 from matplotlib import pyplot as plt
 from tabulate import tabulate
-
+from itertools import product
+import shutil
+from tabulate import tabulate
+import time
 from torch.nn import functional as F
 from torch.optim import RMSprop, AdamW
 from torch.amp import GradScaler, autocast
@@ -148,6 +153,8 @@ def load_data(test_csv, local_train=True, test_length=10, batch_size=1, num_work
     print(f"已加载测试数据: {len(test_loader)}")
     return test_loader
 
+
+
 def inference(test_df, test_loader, output_path, model, Metricer, scaler, optimizer, ckpt_path, affine=None, window_size=(128, 128, 128), stride_ratio=0.5, save_flag=True, device=DEVICE):
     if affine is None:
         affine = np.array([[ -1.,  -0.,  -0.,   0.],
@@ -155,12 +162,24 @@ def inference(test_df, test_loader, output_path, model, Metricer, scaler, optimi
                            [  0.,   0.,   1.,   0.],
                            [  0.,   0.,   0.,   1.]])
     
+    # 记录推理开始时间
+    start_time = time.time()
+    
     # 加载模型权重
     model, optimizer, scaler, _, _ = load_checkpoint(model, optimizer, scaler, ckpt_path)
     model.to(device)
+    model_name = model.__class__.__name__
+
+    # 细化output分类  
+    output_path = os.path.join(output_path, f'{model_name}_{get_current_date()}_{get_current_time()}')
+    os.makedirs(output_path, exist_ok=True)
+    # 将 ckpt 文件移动到 output 文件夹下
+    ckpt_filename = os.path.basename(ckpt_path)
+    new_ckpt_path = os.path.join(output_path, ckpt_filename)
+    shutil.copy(ckpt_path, new_ckpt_path)
+    print(f'{ckpt_filename} 文件移动到 {new_ckpt_path} 文件夹下')
     
     Metrics_list = np.zeros((7, 4))
-        
     for i, data in enumerate(tqdm(test_loader)):
         vimage, vmask = data[0], data[1]
         pred_vimage = slide_window_pred(model, vimage, device, window_size, stride_ratio=1)
@@ -176,11 +195,10 @@ def inference(test_df, test_loader, output_path, model, Metricer, scaler, optimi
         # 评估指标
         metrics = Metricer.update(pred_vimage, vmask)
         Metrics_list += metrics
-
+    
     Metrics_list /= len(test_loader)
-
     test_scorce = {}
-    test_scorce['Dice_scores'] = Metrics_list[0] 
+    test_scorce['Dice_scores'] = Metrics_list[0]
     test_scorce['Jaccard_scores'] = Metrics_list[1]
     test_scorce['Accuracy_scores'] = Metrics_list[2]
     test_scorce['Precision_scores'] = Metrics_list[3]
@@ -190,16 +208,26 @@ def inference(test_df, test_loader, output_path, model, Metricer, scaler, optimi
     
     metric_table_header = ["Metric_Name", "MEAN", "ET", "TC", "WT"]
     metric_table_left = ["Dice", "Jaccard", "Accuracy", "Precision", "Recall", "F1", "F2"]
-
     metric_scores_mapping = {metric: test_scorce[f"{metric}_scores"] for metric in metric_table_left}
     metric_table = [[metric,
-                    format_value(metric_scores_mapping[metric][0]),
-                    format_value(metric_scores_mapping[metric][1]),
-                    format_value(metric_scores_mapping[metric][2]),
-                    format_value(metric_scores_mapping[metric][3])] for metric in metric_table_left]
+                     format_value(metric_scores_mapping[metric][0]),
+                     format_value(metric_scores_mapping[metric][1]),
+                     format_value(metric_scores_mapping[metric][2]),
+                     format_value(metric_scores_mapping[metric][3])] for metric in metric_table_left]
+    
     table_str = tabulate(metric_table, headers=metric_table_header, tablefmt='grid')
-    metrics_info = table_str
-
+    
+    # 记录推理结束时间
+    end_time = time.time()
+    inference_time = end_time - start_time
+    
+    # 添加模型名称、ckpt 文件路径和推理时间到日志信息
+    
+    metrics_info = f"Model Name: {model_name}\n"
+    metrics_info += f"Checkpoint Path: {new_ckpt_path}\n"
+    metrics_info += f"Inference Time: {inference_time:.2f} seconds\n"
+    metrics_info += table_str
+    
     log_path = os.path.join(output_path, f"test_metrics.txt")
     custom_logger(metrics_info, log_path, log_time=True)
     print(metrics_info)
@@ -238,6 +266,8 @@ def slide_window_pred(model, test_data, device, window_size, stride_ratio=1):
 
     return pred_mask
 
+
+
 def save_nii(test_df, pred_vimage, vmask, output_path, affine, case_id):
     """将输入、掩码和预测输出保存为 NIfTI 文件。"""
     test_output_argmax = torch.argmax(pred_vimage, dim=1).to(dtype=torch.int64)
@@ -263,12 +293,13 @@ def save_nii(test_df, pred_vimage, vmask, output_path, affine, case_id):
         
     print(f"{case_id} 预测结果保存成功！路径：{output_path}")
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run inference with UXNET model.")
-    parser.add_argument('--model_name', type=str, default='mamba3d', help='Model name (default: uxnet)')
+    parser.add_argument('--model_name', type=str, default='attention_unet', help='Model name (default: uxnet)')
     parser.add_argument('--test_csv', type=str, default='/root/workspace/VoxelMedix/data/raw/brats21_original/test.csv', help='Path to the test dataset CSV file (default: /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv)')
-    parser.add_argument('--ckpt_path', type=str, default='/root/workspace/VoxelMedix/results/Mamba3d_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_03-01-11/checkpoints/best@e12_Mamba3d__diceloss0.2657_dice0.7270_2025-01-15_03-01-11_5.pth', help='Path to the model checkpoint file (default: /root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-14_22-12-52/checkpoints/UXNET_final_model.pth)')
-    parser.add_argument('--output_path', type=str, default='/root/workspace/VoxelMedix/output/Mamba3d', help='Output directory to save results (default: /root/workspace/VoxelMedix/output/UXNET)')
+    parser.add_argument('--ckpt_path', type=str, default='/root/workspace/VoxelMedix/output/AttentionUnet_2025-01-16_13-41-00/best@e84_AttentionUnet__diceloss0.1803_dice0.8201_2025-01-15_20-41-19_24.pth', help='')
+    parser.add_argument('--output_path', type=str, default=f'/root/workspace/VoxelMedix/output', help='Output directory to save results (default: /root/workspace/VoxelMedix/output/UXNET)')
     return parser.parse_args()
 
 def main():

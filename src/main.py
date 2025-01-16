@@ -72,7 +72,7 @@ def load_model(args):
         model = soft_CADI_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
     elif args.model_name == 'dw_unet3d':
         model = DW_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'soft_dw__unet3d':
+    elif args.model_name == 'soft_dw_unet3d':
         model = soft_DW_UNet3D(
             in_channels=args.model_in_channel, 
             out_channels=args.model_out_channel)
@@ -296,23 +296,23 @@ def main(args):
     print(f"Total number of parameters: {total_params}")
     setattr(args, 'total_parms', total_params)
     model_name = model.__class__.__name__
-    optimizer_name = optimizer.__class__.__name__
-    scheduler_name = scheduler.__class__.__name__
-    loss_name = loss_function.__class__.__name__
+    # optimizer_name = optimizer.__class__.__name__
+    # scheduler_name = scheduler.__class__.__name__
+    # loss_name = loss_function.__class__.__name__
     
     """------------------------------------- 定义或获取路径 --------------------------------------------"""
-    if args.resume:
-        resume_path = args.resume
+    if args.paths_resume:
+        resume_path = args.paths_resume
         print(f"Resuming training from {resume_path}")
-        results_dir = os.path.join(*resume_path.split('/')[:-2])
+        results_dir = os.path.join('/',*resume_path.split('/')[:-2])
         resume_tb_path = os.path.join(results_dir, 'tensorBoard')
         logs_dir = os.path.join(results_dir, 'logs')
         logs_file_name = [file for file in os.listdir(logs_dir) if file.endswith('.log')]
         logs_path = os.path.join(logs_dir, logs_file_name[0])
     else:
         os.makedirs(args.paths_results_root, exist_ok=True)
-        results_dir = os.path.join(args.paths_results_root, ('_').join([model_name, loss_name, optimizer_name, scheduler_name]))       # TODO: 改成网络对应的文件夹
-        results_dir = create_folder(results_dir)
+        results_dir = os.path.join(args.paths_results_root, ('_').join([model_name, f'{get_current_date()}_{get_current_time()}']))       # TODO: 改成网络对应的文件夹
+        os.makedirs(results_dir, exist_ok=True)
         logs_dir = os.path.join(results_dir, 'logs')
         logs_path = os.path.join(logs_dir, f'{get_current_date()}.log')
         os.makedirs(logs_dir, exist_ok=True)
@@ -323,13 +323,13 @@ def main(args):
 
 
     """------------------------------------- 断点续传 --------------------------------------------"""
-    if args.resume:
-        print(f"Resuming training from checkpoint {args.resume}")
-        checkpoint = torch.load(args.resume)
+    if args.paths_resume:
+        print(f"Resuming training from checkpoint {args.paths_resume}")
+        checkpoint = torch.load(args.paths_resume)
         best_val_loss = checkpoint['best_val_loss']
         start_epoch = checkpoint['epoch']
         model.load_state_dict(checkpoint['model_state_dict'])
-        print(f"Loaded checkpoint {args.resume}")
+        print(f"Loaded checkpoint {args.paths_resume}")
         print(f"Best val loss: {best_val_loss:.4f} ✈ epoch {start_epoch}")
         cutoff_tb_data(resume_tb_path, start_epoch)
         print(f"Refix resume tb data step {resume_tb_path} up to step {start_epoch}")
@@ -401,9 +401,11 @@ def flatten_config(config, parent_key='', sep='_'):
 
 if __name__ == '__main__':
     start_time = time.time()
+    
+    ## 定义全局参数
     parser = argparse.ArgumentParser(description='Train args')
     parser.add_argument('--config', type=str, 
-                        default='/root/workspace/VoxelMedix/src/configs/debug.yaml', 
+                        default='/root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml', 
                         help='Path to the configuration YAML file')
     parser.add_argument('--resume', type=str, 
                         default=False, 
@@ -412,11 +414,13 @@ if __name__ == '__main__':
                         default=False, 
                         help='Path to the TensorBoard logs to resume from')
     parser.add_argument('--training_epochs', type=str,
-                        default=20, help='training epoch')
-    parser.add_argument('--training_train_length', type=str,
                         default=100, help='training epoch')
+    parser.add_argument('--training_train_length', type=str,
+                        default=500, help='training epoch')
     parser.add_argument('--training_val_length', type=str,
-                        default=20, help='training epoch')
+                        default=100, help='training epoch')
+    # parser.add_argument('--training_model', type=str,
+    #                     default='unetr', help='training epoch')
     # 解析命令行参数
     global_args = vars(parser.parse_args())  
 
