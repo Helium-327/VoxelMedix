@@ -4,7 +4,7 @@ import copy
 from torch import nn
 from einops import rearrange
 from functools import partial
-from _init_model import init_all_weights
+# from _init_model import init_all_weights
 
 
             
@@ -80,7 +80,9 @@ class SegFormer3D(nn.Module):
             num_classes=num_classes,
             dropout=decoder_dropout,
         )
+        self.softmax = nn.Softmax(dim=1)
         self.apply(self._init_weights)
+        
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -119,7 +121,7 @@ class SegFormer3D(nn.Module):
         c3 = x[2]
         c4 = x[3]
         # decoding the embedded features
-        x = self.segformer_decoder(c1, c2, c3, c4)
+        x = self.softmax(self.segformer_decoder(c1, c2, c3, c4))
         return x
     
 # ----------------------------------------------------- encoder -----------------------------------------------------

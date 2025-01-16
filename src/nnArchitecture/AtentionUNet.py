@@ -29,6 +29,8 @@ import torch.nn as nn
 from monai.networks.blocks.convolutions import Convolution
 from monai.networks.layers.factories import Norm
 
+from _init_model import init_all_weights
+
 __all__ = ["AttentionUnet"]
 
 
@@ -289,6 +291,9 @@ class AttentionUnet(nn.Module):
 
         encdec = _create_block(self.channels, self.strides)
         self.model = nn.Sequential(head, encdec, reduce_channels)
+        self.softmax = nn.Softmax(dim=1)
+        self.apply(init_all_weights)
+        
 
     def _get_bottom_layer(self, in_channels: int, out_channels: int, strides: int) -> nn.Module:
         return AttentionLayer(
@@ -311,12 +316,12 @@ class AttentionUnet(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.predict_mode:
             output = self.model(x)
-            return output
+            return self.softmax(output)
         else:
             features = self.model[:-1](x)  # 获取到最后一层之前的特征
             output = self.model[-1](features)  # 使用最后一层进行预测
-            return features, output
-
+            # return features, output
+            return self.softmax(output)
 
 if __name__ == "__main__":
     model = AttentionUnet(

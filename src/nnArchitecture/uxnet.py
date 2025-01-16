@@ -22,7 +22,7 @@ from functools import partial
 import torch.nn as nn
 import torch.nn.init as init
 
-from _init_model import init_all_weights
+# from _init_model import init_all_weights
 
 class LayerNorm(nn.Module):
     """LayerNorm 支持两种数据格式：channels_last（默认）和 channels_first。
@@ -344,7 +344,7 @@ class UXNET(nn.Module):
         )
         
         self.softmax = nn.Softmax(dim=1)
-        self.apply(init_all_weights)
+        # self.apply(init_all_weights)
 
     def proj_feat(self, x, hidden_size, feat_size):
         """将特征投影到指定维度。"""

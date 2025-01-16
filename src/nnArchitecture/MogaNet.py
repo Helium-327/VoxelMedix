@@ -20,7 +20,7 @@ from mamba_ssm import Mamba
 from timm.models.layers import trunc_normal_, DropPath
 # from timm.models.registry import register_model
 
-from _init_model import init_all_weights
+# from _init_model import init_all_weights
 
 def build_act_layer(act_type):
     """Build activation layer."""
@@ -1051,7 +1051,7 @@ class MogaNet(nn.Module):
         # self.out[-1] = MSCHead_moe(channels[0], n_classes, 7)
         # self.out[-1]=MSCHead_nonMoe_skfv3_cbam(channels[0], n_classes, 7)
         self.softmax = nn.Softmax(dim=1)
-        self.apply(init_all_weights)
+        # self.apply(init_all_weights)
         
     def forward(self, x):
         encoder_features = []  # 存储编码器输出

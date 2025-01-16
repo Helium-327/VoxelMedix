@@ -20,8 +20,3 @@ def init_all_weights(m):
             nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
         if m.bias is not None:
             nn.init.constant_(m.bias, 0.0)
-    elif isinstance(m, (nn.LayerNorm, nn.InstanceNorm3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.GroupNorm)):
-        if m.weight is not None:
-            nn.init.constant_(m.weight, 1.0)
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0.0)

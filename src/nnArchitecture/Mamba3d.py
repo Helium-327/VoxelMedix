@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 import torch.distributions as td
 from torch.amp import autocast
-from _init_model import init_all_weights
+# from _init_model import init_all_weights
 # Third-party libraries
 from mamba_ssm import Mamba
 from einops import rearrange, repeat
@@ -23,26 +23,6 @@ import copy
 from functools import partial
 from typing import Optional, Callable
 DropPath.__repr__ = lambda self: f"timm.DropPath({self.drop_prob})"
-
-import torch.nn as nn
-
-
-
-def init_all_weights(m):
-    if isinstance(m, nn.Linear):
-        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        if isinstance(m, nn.Linear) and m.bias is not None:
-            nn.init.constant_(m.bias, 0)
-    elif isinstance(m, (nn.Conv1d, nn.Conv2d, nn.Conv3d)):
-        if m.weight is not None:
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0.0)
-    elif isinstance(m, (nn.LayerNorm, nn.InstanceNorm3d, nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.GroupNorm)):
-        if m.weight is not None:
-            nn.init.constant_(m.weight, 1.0)
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0.0)
 
 # import mamba_ssm.selective_scan_fn (in which causal_conv1d is needed)
 try:
@@ -1580,45 +1560,81 @@ class Mamba3d(nn.Module):
             [Out(channels[depth - i - 1], n_classes) for i in range(depth)]
         )
         self.softmax = nn.Softmax(dim=1)
-        self.apply(init_all_weights)
+        # self.apply(init_all_weights)
         
 
     def forward(self, x):
+        # 检查输入数据是否包含 NaN 或 inf
+        if torch.isnan(x).any():
+            print("输入数据 x 中包含 NaN 值")
+        if torch.isinf(x).any():
+            print("输入数据 x 中包含 inf 值")
+
         encoder_features = []  # 存储编码器输出
         decoder_features = []  # 存储解码器输出
 
         # 编码过程
-        for i,encoder in enumerate(self.encoders):
-            if i==0:
+        for i, encoder in enumerate(self.encoders):
+            if i == 0:
                 x = encoder(x)
                 encoder_features.append([x])
             else:
-                x_down,x = encoder(x)
-                encoder_features.append([x_down,x])
+                x_down, x = encoder(x)
+                encoder_features.append([x_down, x])
+            
+            # 检查编码器输出是否包含 NaN 或 inf
+            if torch.isnan(x).any():
+                print(f"编码器 {i} 输出 x 中包含 NaN 值")
+            if torch.isinf(x).any():
+                print(f"编码器 {i} 输出 x 中包含 inf 值")
+            if i > 0:
+                if torch.isnan(x_down).any():
+                    print(f"编码器 {i} 输出 x_down 中包含 NaN 值")
+                if torch.isinf(x_down).any():
+                    print(f"编码器 {i} 输出 x_down 中包含 inf 值")
 
-        for i in range(self.depth+1):
+        # 解码过程
+        for i in range(self.depth + 1):
             if i == 0:
-                x_down,x_dec =  encoder_features[self.depth-i][0],encoder_features[self.depth-i][1]
+                x_down, x_dec = encoder_features[self.depth - i][0], encoder_features[self.depth - i][1]
                 x_dec = self.skips[i](x_dec)
-                # print(x_dec.shape)
             elif i == self.depth:
-                x_dec = self.decoders[i-1](x_dec, x_down)
+                x_dec = self.decoders[i - 1](x_dec, x_down)
                 decoder_features.append(x_dec)
-                # print(x_dec.shape)
             else:
-                x_dec = self.decoders[i-1](x_dec, self.skips[i](x_down))
-                x_down = encoder_features[self.depth-i][0]
+                x_dec = self.decoders[i - 1](x_dec, self.skips[i](x_down))
+                x_down = encoder_features[self.depth - i][0]
                 decoder_features.append(x_dec)
-                # print(x_dec.shape)
+            
+            # 检查解码器输出是否包含 NaN 或 inf
+            if torch.isnan(x_dec).any():
+                print(f"解码器 {i} 输出 x_dec 中包含 NaN 值")
+            if torch.isinf(x_dec).any():
+                print(f"解码器 {i} 输出 x_dec 中包含 inf 值")
 
+        # 检查最终输出是否包含 NaN 或 inf
         if self.deep_supervision:
-            # return [m(mask) for m, mask in zip(self.out, decoder_features)][::-1]
-            return self.softmax(self.out[-1](decoder_features[-1]))
+            outputs = [self.out[-1](decoder_features[-1])]
+            for output in outputs:
+                if torch.isnan(output).any():
+                    print("深度监督输出中包含 NaN 值")
+                if torch.isinf(output).any():
+                    print("深度监督输出中包含 inf 值")
+            return self.softmax(outputs[-1])
         elif self.predict_mode:
-            return self.softmax(self.out[-1](decoder_features[-1]))
+            final_output = self.out[-1](decoder_features[-1])
+            if torch.isnan(final_output).any():
+                print("预测模式输出中包含 NaN 值")
+            if torch.isinf(final_output).any():
+                print("预测模式输出中包含 inf 值")
+            return self.softmax(final_output)
         else:
-            return self.softmax(self.out[-1](decoder_features[-1]))
-            # return x_dec, self.out[-1](decoder_features[-1])
+            final_output = self.out[-1](decoder_features[-1])
+            if torch.isnan(final_output).any():
+                print("最终输出中包含 NaN 值")
+            if torch.isinf(final_output).any():
+                print("最终输出中包含 inf 值")
+            return self.softmax(final_output)
         
 
 

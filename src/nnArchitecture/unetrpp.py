@@ -39,7 +39,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 import math
-from _init_model import init_all_weights
+# from _init_model import init_all_weights
     
 def maybe_to_torch(d):
     if isinstance(d, list):
@@ -1538,7 +1538,7 @@ class UNETR_PP(SegmentationNetwork):
             self.out2 = UnetOutBlock(spatial_dims=3, in_channels=feature_size * 2, out_channels=out_channels)
             self.out3 = UnetOutBlock(spatial_dims=3, in_channels=feature_size * 4, out_channels=out_channels)
         self.softmax  = nn.Softmax(dim=1)
-        self.apply(init_all_weights)
+        # self.apply(init_all_weights)
         
     def proj_feat(self, x, hidden_size, feat_size):
         x = x.view(x.size(0), feat_size[0], feat_size[1], feat_size[2], hidden_size)

@@ -30,7 +30,7 @@ from monai.networks.blocks.dynunet_block import UnetOutBlock
 from monai.networks.blocks.unetr_block import UnetrBasicBlock, UnetrPrUpBlock, UnetrUpBlock
 from monai.networks.nets.vit import ViT
 from monai.utils import deprecated_arg, ensure_tuple_rep
-from _init_model import init_all_weights
+# from _init_model import init_all_weights
             
 class UNETR(nn.Module):
     """
@@ -209,7 +209,7 @@ class UNETR(nn.Module):
         # 投影相关参数
         self.proj_axes = (0, spatial_dims + 1) + tuple(d + 1 for d in range(spatial_dims))
         self.proj_view_shape = list(self.feat_size) + [self.hidden_size]
-        self.apply(init_all_weights)
+        # self.apply(init_all_weights)
 
     def proj_feat(self, x):
         """将特征投影到指定维度。"""
