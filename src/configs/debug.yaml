@@ -13,7 +13,7 @@ training:
   test_length: 2
 
 model:
-  name: "mamba3d"
+  name: "unetr"
   in_channel: 4
   mid_channel: 32
   out_channel: 4
@@ -38,6 +38,7 @@ loss:
   type: "diceloss"
 
 paths:
+  resume: False
   root: "/root/workspace/VoxelMedix"
   data_root: "/root/workspace/VoxelMedix/data"
   output: "/root/workspace/VoxelMedix/output"

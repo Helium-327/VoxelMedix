@@ -13,7 +13,7 @@ training:
   test_length: 10
 
 model:
-  name: "segformer3d"
+  name: "mamba3d"
   in_channel: 4
   mid_channel: 32
   out_channel: 4

@@ -1,5 +1,5 @@
 training:
-  epochs: 10
+  epochs: 100
   batch_size: 2
   num_workers: 8
   early_stop_patience: 0
@@ -8,12 +8,12 @@ training:
   tb: true
   data_split: false
   local: true
-  train_length: 10
-  val_length: 2
-  test_length: 2
+  train_length: 500
+  val_length: 100
+  test_length: 10
 
 model:
-  name: "uxnet"
+  name: "attention_unet"
   in_channel: 4
   mid_channel: 32
   out_channel: 4

@@ -2,7 +2,7 @@ training:
   epochs: 100
   batch_size: 2
   num_workers: 8
-  early_stop_patience: 0
+  early_stop_patience: 30
   save_max: 5
   interval: 1
   tb: true
@@ -13,7 +13,7 @@ training:
   test_length: 10
 
 model:
-  name: "segformer3d"
+  name: "uxnet"
   in_channel: 4
   mid_channel: 32
   out_channel: 4
@@ -38,6 +38,8 @@ loss:
   type: "diceloss"
 
 paths:
+  # resume: "/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-16_13-48-56/checkpoints/best@e14_UXNET__diceloss0.2477_dice0.7556_2025-01-16_13-48-56_10.pth"
+  resume: False
   root: "/root/workspace/VoxelMedix"
   data_root: "/root/workspace/VoxelMedix/data"
   output: "/root/workspace/VoxelMedix/output"
