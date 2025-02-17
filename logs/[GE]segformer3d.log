@@ -1,0 +1,15 @@
+Importing from timm.models.layers is deprecated, please import via timm.layers
+加载配置文件耗时: 0.00 s
+加载配置文件耗时: 0.00 s
+Traceback (most recent call last):
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 285, in main
+    model = load_model(args)
+  File "/root/workspace/VoxelMedix/src/main.py", line 80, in load_model
+    model = SegFormer3D(
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/segFormer3d.py", line 84, in __init__
+    self.apply(self.init_all_weights)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1931, in __getattr__
+    raise AttributeError(
+AttributeError: 'SegFormer3D' object has no attribute 'init_all_weights'

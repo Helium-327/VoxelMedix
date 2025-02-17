@@ -147,7 +147,7 @@ def train(model, Metrics, train_loader,  val_loader, test_loader, scaler, optimi
             Metrics_list = Metrics_list / len(val_loader)
             
             # 记录验证结果
-            val_scores = {}
+            val_scores = {}                 # FIXME:去掉_scores
             val_scores['epoch'] = epoch
             val_scores['Dice_scores'] = Metrics_list[0] 
             val_scores['Jaccard_scores'] = Metrics_list[1]
@@ -155,7 +155,7 @@ def train(model, Metrics, train_loader,  val_loader, test_loader, scaler, optimi
             val_scores['Precision_scores'] = Metrics_list[3]
             val_scores['Recall_scores'] = Metrics_list[4]
             val_scores['F1_scores'] = Metrics_list[5]
-            val_scores['F2_scores'] = Metrics_list[6]
+            val_scores['H95_scores'] = Metrics_list[6]
             # val_metrics.append(val_scores)
             
             """-------------------------------------- TensorBoard 记录验证结果 --------------------------------------------------"""
@@ -202,8 +202,8 @@ def train(model, Metrics, train_loader,  val_loader, test_loader, scaler, optimi
                 writer.add_scalars('metrics/F1', 
                                     {'Mean':val_scores['F1_scores'][0], 'ET': val_scores['F1_scores'][1], 'TC': val_scores['F1_scores'][2], 'WT': val_scores['F1_scores'][3]},
                                     epoch) 
-                writer.add_scalars('metrics/F2', 
-                                    {'Mean':val_scores['F2_scores'][0], 'ET': val_scores['F2_scores'][1], 'TC': val_scores['F2_scores'][2], 'WT': val_scores['F2_scores'][3]},
+                writer.add_scalars('metrics/H95', 
+                                    {'Mean':val_scores['H95_scores'][0], 'ET': val_scores['H95_scores'][1], 'TC': val_scores['H95_scores'][2], 'WT': val_scores['H95_scores'][3]},
                                     epoch)                               
             
             end_time = time.time()
@@ -211,7 +211,7 @@ def train(model, Metrics, train_loader,  val_loader, test_loader, scaler, optimi
             
             """-------------------------------------- 打印指标 --------------------------------------------------"""
             metric_table_header = ["Metric_Name", "MEAN", "ET", "TC", "WT"]
-            metric_table_left = ["Dice", "Jaccard", "Accuracy", "Precision", "Recall", "F1", "F2"]
+            metric_table_left = ["Dice", "Jaccard", "Accuracy", "Precision", "Recall", "F1", "H95"]
 
 
             val_info_str =  f"=== [Epoch {epoch}/{end_epoch}] ===\n"\

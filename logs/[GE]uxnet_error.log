@@ -1,0 +1,918 @@
+Error: Failed to run with config file /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml
+Importing from timm.models.layers is deprecated, please import via timm.layers
+加载配置文件耗时: 0.00 s
+加载配置文件耗时: 0.00 s
+Total number of parameters: 33.14 M
+当前日期文件夹已存在，将创建时间文件夹：/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_20-27-39 
+已加载数据集, 训练集: 50, 验证集: 10
++------------------------------+-----------------------------------------------------------------+
+| Parameter                    | Value                                                           |
++==============================+=================================================================+
+| training_epochs              | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_batch_size          | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_num_workers         | 8                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_early_stop_patience | 30                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_save_max            | 5                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_interval            | 1                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_tb                  | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_data_split          | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| training_local               | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_train_length        | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| training_val_length          | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_test_length         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_name                   | uxnet                                                           |
++------------------------------+-----------------------------------------------------------------+
+| model_in_channel             | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_mid_channel            | 32                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_out_channel            | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_fusion_flag            | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| model_total_parms            | None                                                            |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_type               | adamw                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_lr                 | 0.0001                                                          |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_wd                 | 1e-05                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_patience    | 3                                                               |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_factor      | 0.9                                                             |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_type               | CosineWarmupRestarts                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_0         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_mult      | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_eta_min     | 1e-6                                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_max       | 200                                                             |
++------------------------------+-----------------------------------------------------------------+
+| loss_type                    | diceloss                                                        |
++------------------------------+-----------------------------------------------------------------+
+| paths_root                   | /root/workspace/VoxelMedix                                      |
++------------------------------+-----------------------------------------------------------------+
+| paths_data_root              | /root/workspace/VoxelMedix/data                                 |
++------------------------------+-----------------------------------------------------------------+
+| paths_output                 | /root/workspace/VoxelMedix/output                               |
++------------------------------+-----------------------------------------------------------------+
+| paths_train_csv              | /root/workspace/VoxelMedix/data/raw/brats21_original/train.csv  |
++------------------------------+-----------------------------------------------------------------+
+| paths_val_csv                | /root/workspace/VoxelMedix/data/raw/brats21_original/val.csv    |
++------------------------------+-----------------------------------------------------------------+
+| paths_test_csv               | /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv   |
++------------------------------+-----------------------------------------------------------------+
+| paths_results_root           | /root/workspace/VoxelMedix/results                              |
++------------------------------+-----------------------------------------------------------------+
+| commit                       | debug                                                           |
++------------------------------+-----------------------------------------------------------------+
+| config                       | /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml |
++------------------------------+-----------------------------------------------------------------+
+| resume                       | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| resume_tb_path               | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| total_parms                  | 33.14 M                                                         |
++------------------------------+-----------------------------------------------------------------+
+| train_length                 | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| val_length                   | 20                                                              |
++------------------------------+-----------------------------------------------------------------+2025-01-15 20:27:39,171 - INFO - 开始训练, 训练轮数:20, UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+
+UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+=== Training on [Epoch 1/20] ===:
+🛠️--Training:   0%|          | 0/50 [00:00<?, ?it/s]Error detected in ConvolutionBackward0. Traceback of forward call that caused the error:
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 67, in train_one_epoch
+    predicted_mask = model(vimage)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 359, in forward
+    outs = self.uxnet_3d(x_in)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 168, in forward
+    x = self.forward_features(x)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 159, in forward_features
+    x = self.downsample_layers[i](x)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/container.py", line 250, in forward
+    input = module(input)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 725, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 720, in _conv_forward
+    return F.conv3d(
+ (Triggered internally at ../torch/csrc/autograd/python_anomaly_mode.cpp:110.)
+                                                    Traceback (most recent call last):
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 69, in train_one_epoch
+    scaler.scale(mean_loss).backward()                           # 反向传播，只有训练模型时才需要
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Function 'ConvolutionBackward0' returned nan values in its 0th output.
+Error: Failed to run with config file /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml
+Importing from timm.models.layers is deprecated, please import via timm.layers
+加载配置文件耗时: 0.00 s
+加载配置文件耗时: 0.00 s
+Total number of parameters: 33.14 M
+当前日期文件夹已存在，将创建时间文件夹：/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_20-27-39 
+已加载数据集, 训练集: 50, 验证集: 10
++------------------------------+-----------------------------------------------------------------+
+| Parameter                    | Value                                                           |
++==============================+=================================================================+
+| training_epochs              | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_batch_size          | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_num_workers         | 8                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_early_stop_patience | 30                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_save_max            | 5                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_interval            | 1                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_tb                  | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_data_split          | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| training_local               | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_train_length        | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| training_val_length          | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_test_length         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_name                   | uxnet                                                           |
++------------------------------+-----------------------------------------------------------------+
+| model_in_channel             | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_mid_channel            | 32                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_out_channel            | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_fusion_flag            | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| model_total_parms            | None                                                            |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_type               | adamw                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_lr                 | 0.0001                                                          |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_wd                 | 1e-05                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_patience    | 3                                                               |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_factor      | 0.9                                                             |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_type               | CosineWarmupRestarts                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_0         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_mult      | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_eta_min     | 1e-6                                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_max       | 200                                                             |
++------------------------------+-----------------------------------------------------------------+
+| loss_type                    | diceloss                                                        |
++------------------------------+-----------------------------------------------------------------+
+| paths_root                   | /root/workspace/VoxelMedix                                      |
++------------------------------+-----------------------------------------------------------------+
+| paths_data_root              | /root/workspace/VoxelMedix/data                                 |
++------------------------------+-----------------------------------------------------------------+
+| paths_output                 | /root/workspace/VoxelMedix/output                               |
++------------------------------+-----------------------------------------------------------------+
+| paths_train_csv              | /root/workspace/VoxelMedix/data/raw/brats21_original/train.csv  |
++------------------------------+-----------------------------------------------------------------+
+| paths_val_csv                | /root/workspace/VoxelMedix/data/raw/brats21_original/val.csv    |
++------------------------------+-----------------------------------------------------------------+
+| paths_test_csv               | /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv   |
++------------------------------+-----------------------------------------------------------------+
+| paths_results_root           | /root/workspace/VoxelMedix/results                              |
++------------------------------+-----------------------------------------------------------------+
+| commit                       | debug                                                           |
++------------------------------+-----------------------------------------------------------------+
+| config                       | /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml |
++------------------------------+-----------------------------------------------------------------+
+| resume                       | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| resume_tb_path               | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| total_parms                  | 33.14 M                                                         |
++------------------------------+-----------------------------------------------------------------+
+| train_length                 | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| val_length                   | 20                                                              |
++------------------------------+-----------------------------------------------------------------+2025-01-15 20:27:39,171 - INFO - 开始训练, 训练轮数:20, UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+
+UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+=== Training on [Epoch 1/20] ===:
+🛠️--Training:   0%|          | 0/50 [00:00<?, ?it/s]Error detected in ConvolutionBackward0. Traceback of forward call that caused the error:
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 67, in train_one_epoch
+    predicted_mask = model(vimage)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 359, in forward
+    outs = self.uxnet_3d(x_in)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 168, in forward
+    x = self.forward_features(x)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 159, in forward_features
+    x = self.downsample_layers[i](x)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/container.py", line 250, in forward
+    input = module(input)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 725, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 720, in _conv_forward
+    return F.conv3d(
+ (Triggered internally at ../torch/csrc/autograd/python_anomaly_mode.cpp:110.)
+                                                    Traceback (most recent call last):
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 69, in train_one_epoch
+    scaler.scale(mean_loss).backward()                           # 反向传播，只有训练模型时才需要
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Function 'ConvolutionBackward0' returned nan values in its 0th output.
+Error: Failed to run with config file /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml
+Importing from timm.models.layers is deprecated, please import via timm.layers
+加载配置文件耗时: 0.00 s
+加载配置文件耗时: 0.00 s
+Total number of parameters: 33.14 M
+当前日期文件夹已存在，将创建时间文件夹：/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_20-27-39 
+已加载数据集, 训练集: 50, 验证集: 10
++------------------------------+-----------------------------------------------------------------+
+| Parameter                    | Value                                                           |
++==============================+=================================================================+
+| training_epochs              | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_batch_size          | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_num_workers         | 8                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_early_stop_patience | 30                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_save_max            | 5                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_interval            | 1                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_tb                  | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_data_split          | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| training_local               | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_train_length        | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| training_val_length          | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_test_length         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_name                   | uxnet                                                           |
++------------------------------+-----------------------------------------------------------------+
+| model_in_channel             | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_mid_channel            | 32                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_out_channel            | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_fusion_flag            | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| model_total_parms            | None                                                            |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_type               | adamw                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_lr                 | 0.0001                                                          |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_wd                 | 1e-05                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_patience    | 3                                                               |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_factor      | 0.9                                                             |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_type               | CosineWarmupRestarts                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_0         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_mult      | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_eta_min     | 1e-6                                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_max       | 200                                                             |
++------------------------------+-----------------------------------------------------------------+
+| loss_type                    | diceloss                                                        |
++------------------------------+-----------------------------------------------------------------+
+| paths_root                   | /root/workspace/VoxelMedix                                      |
++------------------------------+-----------------------------------------------------------------+
+| paths_data_root              | /root/workspace/VoxelMedix/data                                 |
++------------------------------+-----------------------------------------------------------------+
+| paths_output                 | /root/workspace/VoxelMedix/output                               |
++------------------------------+-----------------------------------------------------------------+
+| paths_train_csv              | /root/workspace/VoxelMedix/data/raw/brats21_original/train.csv  |
++------------------------------+-----------------------------------------------------------------+
+| paths_val_csv                | /root/workspace/VoxelMedix/data/raw/brats21_original/val.csv    |
++------------------------------+-----------------------------------------------------------------+
+| paths_test_csv               | /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv   |
++------------------------------+-----------------------------------------------------------------+
+| paths_results_root           | /root/workspace/VoxelMedix/results                              |
++------------------------------+-----------------------------------------------------------------+
+| commit                       | debug                                                           |
++------------------------------+-----------------------------------------------------------------+
+| config                       | /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml |
++------------------------------+-----------------------------------------------------------------+
+| resume                       | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| resume_tb_path               | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| total_parms                  | 33.14 M                                                         |
++------------------------------+-----------------------------------------------------------------+
+| train_length                 | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| val_length                   | 20                                                              |
++------------------------------+-----------------------------------------------------------------+2025-01-15 20:27:39,171 - INFO - 开始训练, 训练轮数:20, UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+
+UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+=== Training on [Epoch 1/20] ===:
+🛠️--Training:   0%|          | 0/50 [00:00<?, ?it/s]Error detected in ConvolutionBackward0. Traceback of forward call that caused the error:
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 67, in train_one_epoch
+    predicted_mask = model(vimage)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 359, in forward
+    outs = self.uxnet_3d(x_in)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 168, in forward
+    x = self.forward_features(x)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 159, in forward_features
+    x = self.downsample_layers[i](x)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/container.py", line 250, in forward
+    input = module(input)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 725, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 720, in _conv_forward
+    return F.conv3d(
+ (Triggered internally at ../torch/csrc/autograd/python_anomaly_mode.cpp:110.)
+                                                    Traceback (most recent call last):
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 69, in train_one_epoch
+    scaler.scale(mean_loss).backward()                           # 反向传播，只有训练模型时才需要
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Function 'ConvolutionBackward0' returned nan values in its 0th output.
+Error: Failed to run with config file /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml
+Importing from timm.models.layers is deprecated, please import via timm.layers
+加载配置文件耗时: 0.00 s
+加载配置文件耗时: 0.00 s
+Total number of parameters: 33.14 M
+当前日期文件夹已存在，将创建时间文件夹：/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_20-27-39 
+已加载数据集, 训练集: 50, 验证集: 10
++------------------------------+-----------------------------------------------------------------+
+| Parameter                    | Value                                                           |
++==============================+=================================================================+
+| training_epochs              | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_batch_size          | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_num_workers         | 8                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_early_stop_patience | 30                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_save_max            | 5                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_interval            | 1                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_tb                  | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_data_split          | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| training_local               | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_train_length        | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| training_val_length          | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_test_length         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_name                   | uxnet                                                           |
++------------------------------+-----------------------------------------------------------------+
+| model_in_channel             | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_mid_channel            | 32                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_out_channel            | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_fusion_flag            | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| model_total_parms            | None                                                            |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_type               | adamw                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_lr                 | 0.0001                                                          |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_wd                 | 1e-05                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_patience    | 3                                                               |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_factor      | 0.9                                                             |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_type               | CosineWarmupRestarts                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_0         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_mult      | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_eta_min     | 1e-6                                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_max       | 200                                                             |
++------------------------------+-----------------------------------------------------------------+
+| loss_type                    | diceloss                                                        |
++------------------------------+-----------------------------------------------------------------+
+| paths_root                   | /root/workspace/VoxelMedix                                      |
++------------------------------+-----------------------------------------------------------------+
+| paths_data_root              | /root/workspace/VoxelMedix/data                                 |
++------------------------------+-----------------------------------------------------------------+
+| paths_output                 | /root/workspace/VoxelMedix/output                               |
++------------------------------+-----------------------------------------------------------------+
+| paths_train_csv              | /root/workspace/VoxelMedix/data/raw/brats21_original/train.csv  |
++------------------------------+-----------------------------------------------------------------+
+| paths_val_csv                | /root/workspace/VoxelMedix/data/raw/brats21_original/val.csv    |
++------------------------------+-----------------------------------------------------------------+
+| paths_test_csv               | /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv   |
++------------------------------+-----------------------------------------------------------------+
+| paths_results_root           | /root/workspace/VoxelMedix/results                              |
++------------------------------+-----------------------------------------------------------------+
+| commit                       | debug                                                           |
++------------------------------+-----------------------------------------------------------------+
+| config                       | /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml |
++------------------------------+-----------------------------------------------------------------+
+| resume                       | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| resume_tb_path               | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| total_parms                  | 33.14 M                                                         |
++------------------------------+-----------------------------------------------------------------+
+| train_length                 | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| val_length                   | 20                                                              |
++------------------------------+-----------------------------------------------------------------+2025-01-15 20:27:39,171 - INFO - 开始训练, 训练轮数:20, UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+
+UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+=== Training on [Epoch 1/20] ===:
+🛠️--Training:   0%|          | 0/50 [00:00<?, ?it/s]Error detected in ConvolutionBackward0. Traceback of forward call that caused the error:
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 67, in train_one_epoch
+    predicted_mask = model(vimage)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 359, in forward
+    outs = self.uxnet_3d(x_in)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 168, in forward
+    x = self.forward_features(x)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 159, in forward_features
+    x = self.downsample_layers[i](x)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/container.py", line 250, in forward
+    input = module(input)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 725, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 720, in _conv_forward
+    return F.conv3d(
+ (Triggered internally at ../torch/csrc/autograd/python_anomaly_mode.cpp:110.)
+                                                    Traceback (most recent call last):
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 69, in train_one_epoch
+    scaler.scale(mean_loss).backward()                           # 反向传播，只有训练模型时才需要
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Function 'ConvolutionBackward0' returned nan values in its 0th output.
+Error: Failed to run with config file /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml
+Importing from timm.models.layers is deprecated, please import via timm.layers
+加载配置文件耗时: 0.00 s
+加载配置文件耗时: 0.00 s
+Total number of parameters: 33.14 M
+当前日期文件夹已存在，将创建时间文件夹：/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_20-27-39 
+已加载数据集, 训练集: 50, 验证集: 10
++------------------------------+-----------------------------------------------------------------+
+| Parameter                    | Value                                                           |
++==============================+=================================================================+
+| training_epochs              | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_batch_size          | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_num_workers         | 8                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_early_stop_patience | 30                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_save_max            | 5                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_interval            | 1                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_tb                  | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_data_split          | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| training_local               | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_train_length        | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| training_val_length          | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_test_length         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_name                   | uxnet                                                           |
++------------------------------+-----------------------------------------------------------------+
+| model_in_channel             | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_mid_channel            | 32                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_out_channel            | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_fusion_flag            | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| model_total_parms            | None                                                            |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_type               | adamw                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_lr                 | 0.0001                                                          |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_wd                 | 1e-05                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_patience    | 3                                                               |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_factor      | 0.9                                                             |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_type               | CosineWarmupRestarts                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_0         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_mult      | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_eta_min     | 1e-6                                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_max       | 200                                                             |
++------------------------------+-----------------------------------------------------------------+
+| loss_type                    | diceloss                                                        |
++------------------------------+-----------------------------------------------------------------+
+| paths_root                   | /root/workspace/VoxelMedix                                      |
++------------------------------+-----------------------------------------------------------------+
+| paths_data_root              | /root/workspace/VoxelMedix/data                                 |
++------------------------------+-----------------------------------------------------------------+
+| paths_output                 | /root/workspace/VoxelMedix/output                               |
++------------------------------+-----------------------------------------------------------------+
+| paths_train_csv              | /root/workspace/VoxelMedix/data/raw/brats21_original/train.csv  |
++------------------------------+-----------------------------------------------------------------+
+| paths_val_csv                | /root/workspace/VoxelMedix/data/raw/brats21_original/val.csv    |
++------------------------------+-----------------------------------------------------------------+
+| paths_test_csv               | /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv   |
++------------------------------+-----------------------------------------------------------------+
+| paths_results_root           | /root/workspace/VoxelMedix/results                              |
++------------------------------+-----------------------------------------------------------------+
+| commit                       | debug                                                           |
++------------------------------+-----------------------------------------------------------------+
+| config                       | /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml |
++------------------------------+-----------------------------------------------------------------+
+| resume                       | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| resume_tb_path               | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| total_parms                  | 33.14 M                                                         |
++------------------------------+-----------------------------------------------------------------+
+| train_length                 | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| val_length                   | 20                                                              |
++------------------------------+-----------------------------------------------------------------+2025-01-15 20:27:39,171 - INFO - 开始训练, 训练轮数:20, UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+
+UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+=== Training on [Epoch 1/20] ===:
+🛠️--Training:   0%|          | 0/50 [00:00<?, ?it/s]Error detected in ConvolutionBackward0. Traceback of forward call that caused the error:
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 67, in train_one_epoch
+    predicted_mask = model(vimage)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 359, in forward
+    outs = self.uxnet_3d(x_in)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 168, in forward
+    x = self.forward_features(x)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 159, in forward_features
+    x = self.downsample_layers[i](x)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/container.py", line 250, in forward
+    input = module(input)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 725, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 720, in _conv_forward
+    return F.conv3d(
+ (Triggered internally at ../torch/csrc/autograd/python_anomaly_mode.cpp:110.)
+                                                    Traceback (most recent call last):
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 69, in train_one_epoch
+    scaler.scale(mean_loss).backward()                           # 反向传播，只有训练模型时才需要
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Function 'ConvolutionBackward0' returned nan values in its 0th output.
+Error: Failed to run with config file /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml
+Importing from timm.models.layers is deprecated, please import via timm.layers
+加载配置文件耗时: 0.00 s
+加载配置文件耗时: 0.00 s
+Total number of parameters: 33.14 M
+当前日期文件夹已存在，将创建时间文件夹：/root/workspace/VoxelMedix/results/UXNET_DiceLoss_AdamW_CosineAnnealingWarmRestarts/2025-01-15_20-27-39 
+已加载数据集, 训练集: 50, 验证集: 10
++------------------------------+-----------------------------------------------------------------+
+| Parameter                    | Value                                                           |
++==============================+=================================================================+
+| training_epochs              | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_batch_size          | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_num_workers         | 8                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_early_stop_patience | 30                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_save_max            | 5                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_interval            | 1                                                               |
++------------------------------+-----------------------------------------------------------------+
+| training_tb                  | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_data_split          | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| training_local               | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| training_train_length        | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| training_val_length          | 20                                                              |
++------------------------------+-----------------------------------------------------------------+
+| training_test_length         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_name                   | uxnet                                                           |
++------------------------------+-----------------------------------------------------------------+
+| model_in_channel             | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_mid_channel            | 32                                                              |
++------------------------------+-----------------------------------------------------------------+
+| model_out_channel            | 4                                                               |
++------------------------------+-----------------------------------------------------------------+
+| model_fusion_flag            | True                                                            |
++------------------------------+-----------------------------------------------------------------+
+| model_total_parms            | None                                                            |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_type               | adamw                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_lr                 | 0.0001                                                          |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_wd                 | 1e-05                                                           |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_patience    | 3                                                               |
++------------------------------+-----------------------------------------------------------------+
+| optimizer_reduce_factor      | 0.9                                                             |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_type               | CosineWarmupRestarts                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_0         | 10                                                              |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_mult      | 2                                                               |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_eta_min     | 1e-6                                                            |
++------------------------------+-----------------------------------------------------------------+
+| scheduler_cosine_T_max       | 200                                                             |
++------------------------------+-----------------------------------------------------------------+
+| loss_type                    | diceloss                                                        |
++------------------------------+-----------------------------------------------------------------+
+| paths_root                   | /root/workspace/VoxelMedix                                      |
++------------------------------+-----------------------------------------------------------------+
+| paths_data_root              | /root/workspace/VoxelMedix/data                                 |
++------------------------------+-----------------------------------------------------------------+
+| paths_output                 | /root/workspace/VoxelMedix/output                               |
++------------------------------+-----------------------------------------------------------------+
+| paths_train_csv              | /root/workspace/VoxelMedix/data/raw/brats21_original/train.csv  |
++------------------------------+-----------------------------------------------------------------+
+| paths_val_csv                | /root/workspace/VoxelMedix/data/raw/brats21_original/val.csv    |
++------------------------------+-----------------------------------------------------------------+
+| paths_test_csv               | /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv   |
++------------------------------+-----------------------------------------------------------------+
+| paths_results_root           | /root/workspace/VoxelMedix/results                              |
++------------------------------+-----------------------------------------------------------------+
+| commit                       | debug                                                           |
++------------------------------+-----------------------------------------------------------------+
+| config                       | /root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml |
++------------------------------+-----------------------------------------------------------------+
+| resume                       | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| resume_tb_path               | False                                                           |
++------------------------------+-----------------------------------------------------------------+
+| total_parms                  | 33.14 M                                                         |
++------------------------------+-----------------------------------------------------------------+
+| train_length                 | 100                                                             |
++------------------------------+-----------------------------------------------------------------+
+| val_length                   | 20                                                              |
++------------------------------+-----------------------------------------------------------------+2025-01-15 20:27:39,171 - INFO - 开始训练, 训练轮数:20, UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+
+UXNET模型写入tensorBoard, 使用 AdamW 优化器, 学习率: 0.0001, 损失函数: DiceLoss
+=== Training on [Epoch 1/20] ===:
+🛠️--Training:   0%|          | 0/50 [00:00<?, ?it/s]Error detected in ConvolutionBackward0. Traceback of forward call that caused the error:
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 67, in train_one_epoch
+    predicted_mask = model(vimage)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 359, in forward
+    outs = self.uxnet_3d(x_in)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 168, in forward
+    x = self.forward_features(x)
+  File "/root/workspace/VoxelMedix/src/nnArchitecture/uxnet.py", line 159, in forward_features
+    x = self.downsample_layers[i](x)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/container.py", line 250, in forward
+    input = module(input)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 725, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 720, in _conv_forward
+    return F.conv3d(
+ (Triggered internally at ../torch/csrc/autograd/python_anomaly_mode.cpp:110.)
+                                                    Traceback (most recent call last):
+  File "/root/workspace/VoxelMedix/src/main.py", line 437, in <module>
+    main(args = argparse.Namespace(**flattened_args))
+  File "/root/workspace/VoxelMedix/src/main.py", line 345, in main
+    train(model,
+  File "/root/workspace/VoxelMedix/src/train.py", line 111, in train
+    train_running_loss, train_et_loss, train_tc_loss, train_wt_loss = train_one_epoch(model, train_loader, scaler, optimizer, loss_function, device)
+  File "/root/workspace/VoxelMedix/src/train_and_val.py", line 69, in train_one_epoch
+    scaler.scale(mean_loss).backward()                           # 反向传播，只有训练模型时才需要
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/root/miniconda3/envs/cv/lib/python3.10/site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Function 'ConvolutionBackward0' returned nan values in its 0th output.

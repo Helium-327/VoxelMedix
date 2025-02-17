@@ -91,13 +91,10 @@ class DiceLoss:
         :param y_pred: 预测值 [batch, 4, D, W, H]
         :param y_mask: 真实值 [batch, D, W, H]
         """
+        y_pred = F.softmax(y_pred, dim=1)
         y_mask = F.one_hot(y_mask, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float() # y_mask ==> [batch, 4, 144, 128, 128]
         area_et_loss, area_tc_loss, area_wt_loss = self.get_every_subAreas_loss(y_pred, y_mask)
-
-        # intersection = (y_pred * y_mask).sum(dim=(-3, -2, -1))
-        # union = y_pred.sum(dim=(-3, -2, -1)) + y_mask.sum(dim=(-3, -2, -1))
-        # dice = (2. * intersection + self.smooth) / (union + self.smooth)
-        # loss = 1. - dice.mean()  
+        
         
         mean_loss = (area_et_loss + area_tc_loss +  area_wt_loss) / 3
         return mean_loss, area_et_loss, area_tc_loss, area_wt_loss
@@ -158,6 +155,7 @@ class FocalLoss:
         
         """
         loss_dict = {}
+        y_pred = F.softmax(y_pred, dim=1)
         y_mask = F.one_hot(y_mask, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float()
 
         pred_list, mask_list = splitSubAreas(y_pred, y_mask)
@@ -178,6 +176,37 @@ class FocalLoss:
         focal_loss = (self.alpha * ((1 - pt) ** self.gamma) * cross_entropy)
         return focal_loss
     
+# 通过滑动平均实现自适应缩放
+class HybridLoss:
+    def __init__(self, T=0.9, n_classes=3):
+        # 为每个类别维护独立的EMA（假设多类别分割）
+        self.focal_ema = torch.ones(n_classes) * 10  # 初始化为向量
+        self.dice_ema = torch.ones(n_classes) * 0.5
+        self.T = T
+        self.n_classes = n_classes
+        self.compute_focal_loss = FocalLoss
+
+    def update_ema(self, focal, dice):
+        # 输入focal/dice应为各class损失张量（shape=[B,C]）
+        for c in range(self.n_classes):
+            self.focal_ema[c] = self.T*self.focal_ema[c] + (1-self.T)*focal[:,c].mean().detach()
+            self.dice_ema[c] = self.T*self.dice_ema[c] + (1-self.T)*dice[:,c].mean().detach()
+
+    def __call__(self, y_pred, y_true):
+        y_pred = F.softmax(y_pred, dim=1)
+        focal = self.compute_focal_loss(y_pred, y_true)  # shape=[B,C]
+        dice = self.compute_dice_loss(y_pred, y_true)    # shape=[B,C]
+        
+        # 逐类别缩放
+        scale_factor = self.dice_ema / (self.focal_ema + 1e-8)
+        scaled_focal = focal * scale_factor.detach()  # shape=[B,C]
+        
+        # 更新EMA需保持设备一致
+        self.update_ema(focal, dice)
+        
+        # 加权求和（按类别维度）
+        return 0.5*scaled_focal.mean(dim=1) + 0.5*dice.mean(dim=1)
+
 # CELoss
 class CELoss:
     def __init__(self, loss_type='mean', smooth=1e-5, w1=0.3, w2=0.3, w3=0.3, w_bg=0.1):
@@ -254,10 +283,13 @@ if __name__ == '__main__':
     diceLossFunc = DiceLoss()
     ceLossFunc = CELoss()
     focallossFunc = FocalLoss()
+    HybirdLossFunc = HybridLoss()
 
-    print(f"CELoss : {diceLossFunc(y_pred, y_mask)}")
+    print(f"CELoss : {ceLossFunc(y_pred, y_mask)}")
     
-    print(f"DiceLoss : {ceLossFunc(y_pred, y_mask)}")
+    print(f"DiceLoss : {diceLossFunc(y_pred, y_mask)}")
     
     print(f"FocalLoss : {focallossFunc(y_pred, y_mask)}")
+    
+    print(f"HybirdLoss : {HybirdLossFunc(y_pred, y_mask)}")
     

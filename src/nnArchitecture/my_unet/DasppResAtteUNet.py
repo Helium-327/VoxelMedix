@@ -38,7 +38,10 @@ class ResConv3D(nn.Module):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1)
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
         )
         self.shortcut = nn.Conv3d(in_channels, out_channels, kernel_size=1) if in_channels != out_channels else None
         self.relu = nn.ReLU(inplace=True)
@@ -52,7 +55,7 @@ class ResConv3D(nn.Module):
         return self.relu(out)
 
 class DenseASPP3D(nn.Module):
-    def __init__(self, in_channels, out_channels, reduce_rate=2, dilations=[1, 2, 4, 8]):
+    def __init__(self, in_channels, out_channels, reduce_rate=4, dilations=[1, 2, 4, 8]):
         super(DenseASPP3D, self).__init__()
         self.aspp1 = nn.Sequential(
             nn.Conv3d(in_channels, out_channels//reduce_rate, kernel_size=3, padding=dilations[0], dilation=dilations[0]),

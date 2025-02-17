@@ -18,79 +18,65 @@ from tabulate import tabulate
 import numpy as np
 from scipy.ndimage import distance_transform_edt, binary_erosion
 
-def hausdorff_distance_3d(y_pred, y_mask, spacing=(1,1,1), percentile=95):
+def hausdorff_distance_3d(y_pred, y_mask, spacing=(1, 1, 1), percentile=95):
     """
-    优化后的3D Hausdorff 95距离计算(兼容BraTS评估协议)
-    
+    优化后的3D Hausdorff 95距离计算（兼容BraTS评估协议）
     优化点：
     1. 使用距离变换替代全距离矩阵计算
     2. 增加体素间距参数处理各向异性数据
     3. 优化空掩码处理逻辑
     4. 内存效率提升约10倍
+    5. 支持批量处理
     """
-    device = y_pred.device
-    results = {}
-    
-    # 将数据转移到CPU并转为numpy数组
+    # 确保输入张量在CPU上并转换为numpy数组
     y_pred = y_pred.detach().cpu().numpy()
     y_mask = y_mask.detach().cpu().numpy()
-    
-    # 定义BraTS子区域组合规则
-    regions = {
-        'ET': [2],       # 增强肿瘤
-        'TC': [0, 1],    # 肿瘤核心
-        'WT': [0, 1, 2]  # 全肿瘤
-    }
-    
-    for region, channels in regions.items():
-        # 生成二值掩码
-        pred_mask = np.isin(y_pred, channels).astype(np.float32)
-        gt_mask = np.isin(y_mask, channels).astype(np.float32)
-        
-        # 空掩码处理逻辑
-        if np.sum(gt_mask) == 0:
-            results[region] = np.nan  # 根据BraTS协议标记无效值
-            continue
-        
-        # 计算双向Hausdorff距离
-        surface_distances = []
-        
-        # 预测到真实表面的距离
-        if np.sum(pred_mask) > 0:
-            edge_pred = np.logical_xor(pred_mask, 
-                binary_erosion(pred_mask, iterations=1))
-            dt_gt = distance_transform_edt(np.logical_not(gt_mask), sampling=spacing)
-            dist_pred = dt_gt[edge_pred]
-            surface_distances.extend(dist_pred)
-            
-        # 真实到预测表面的距离
-        edge_gt = np.logical_xor(gt_mask, 
-            binary_erosion(gt_mask, iterations=1))
-        dt_pred = distance_transform_edt(np.logical_not(pred_mask), sampling=spacing)
-        dist_gt = dt_pred[edge_gt]
-        surface_distances.extend(dist_gt)
-        
-        # 计算百分位数
-        if len(surface_distances) > 0:
-            results[region] = np.percentile(surface_distances, percentile)
-        else:
-            results[region] = 0  # 完全匹配的情况
-    
-    # 计算全局平均（加权平均）
-    valid_values = [v for v in results.values() if not np.isnan(v)]
-    results['global_mean'] = np.mean(valid_values) if valid_values else np.nan
-    
-    return (
-        results.get('global_mean', 0),
-        results.get('ET', 0),
-        results.get('TC', 0),
-        results.get('WT', 0)
-    )
-    
 
+    # 获取批处理大小
+    batch_size = y_pred.shape[0]
+
+    all_hausdorff_distances = []
+
+    for b in range(batch_size):
+        pred = y_pred[b]
+        mask = y_mask[b]
+
+        # 处理真实掩码为空的情况
+        if np.sum(mask) == 0:
+            all_hausdorff_distances.append(np.nan if np.sum(pred) > 0 else 0)
+            continue
+
+        # 处理预测掩码为空的情况
+        if np.sum(pred) == 0:
+            all_hausdorff_distances.append(np.nan)
+            continue
+
+        # 计算预测掩码的表面
+        edge_pred = np.logical_xor(pred, binary_erosion(pred, iterations=1))
+        dt_gt = distance_transform_edt(np.logical_not(mask), sampling=spacing)
+        dist_pred = dt_gt[edge_pred]
+
+        # 计算真实掩码的表面
+        edge_gt = np.logical_xor(mask, binary_erosion(mask, iterations=1))
+        dt_pred = distance_transform_edt(np.logical_not(pred), sampling=spacing)
+        dist_gt = dt_pred[edge_gt]
+
+        # 合并距离
+        surface_distances = np.concatenate([dist_pred, dist_gt])
+
+        # 计算表面距离的百分位数
+        hausdorff_distance = np.percentile(surface_distances, percentile)
+        
+        # 所有batch的h95
+        all_hausdorff_distances.append(hausdorff_distance)
+        
+    # 计算所有batch的平均h95
+    batch_mean_h95_distance = sum(all_hausdorff_distances) / batch_size
+
+    return batch_mean_h95_distance
 
 class EvaluationMetrics:
-    def __init__(self, smooth=1e-5, num_classes=3):
+    def __init__(self, smooth=1e-5, num_classes=4):
         self.smooth = smooth
         self.num_classes = num_classes
         self.sub_areas = ['ET', 'TC', 'WT']
@@ -104,13 +90,13 @@ class EvaluationMetrics:
         :param y_mask: 真实标签
         :return: 处理后的预测标签和真实标签
         """
-        et_pred = y_pred[:, 2, ...]
-        tc_pred = y_pred[:, 0, ...] + y_pred[:, 2, ...]
-        wt_pred = y_pred[:, ...].sum(dim=1)
+        et_pred = y_pred[:, 3, ...]
+        tc_pred = y_pred[:, 1, ...] + y_pred[:, 3, ...]
+        wt_pred = y_pred[:, 1:, ...].sum(dim=1)
          
-        et_mask = y_mask[:, 2, ...]
-        tc_mask = y_mask[:, 0, ...] + y_mask[:, 2, ...]
-        wt_mask = y_mask[:, ...].sum(dim=1)
+        et_mask = y_mask[:, 3, ...]
+        tc_mask = y_mask[:, 1, ...] + y_mask[:, 3, ...]
+        wt_mask = y_mask[:, 1:, ...].sum(dim=1)
         
         pred_list = [et_pred, tc_pred, wt_pred]
         mask_list = [et_mask, tc_mask, wt_mask]
@@ -124,6 +110,7 @@ class EvaluationMetrics:
         :param y_mask: 真实标签
         :return: 混淆矩阵元素值TP、FN、 FP、TN
         """
+        
         assert y_pred.shape == y_mask.shape, "预测标签和真实标签的维度必须相同"
         tensor_one = torch.tensor(1)
         
@@ -147,7 +134,7 @@ class EvaluationMetrics:
         y_pred = torch.argmax(y_pred, dim=1).to(dtype=torch.int64) # 降维，选出概率最大的类索引值
         y_pred = F.one_hot(y_pred, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float() # one-hot
         y_mask = F.one_hot(y_mask, num_classes=4).permute(0, 4, 1, 2, 3).float() # one-hot
-        y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
+        # y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
 
         # 计算每个类别的Dice系数
         pred_list, mask_list = self.pre_processing(y_pred, y_mask) # 获取子区的预测标签和真实标签
@@ -157,11 +144,6 @@ class EvaluationMetrics:
             union = sub_pred.sum(dim=(-3, -2, -1)) + sub_mask.sum(dim=(-3, -2, -1))
             dice_c = (2. * intersection ) / (union + self.smooth)
             dice_coeffs[sub_area] = dice_c.mean()
-        
-        intersection = (y_pred * y_mask).sum(dim=(-3, -2, -1))
-        union = y_pred.sum(dim=(-3, -2, -1)) + y_mask.sum(dim=(-3, -2, -1))
-        dice = (2. * intersection ) / (union + self.smooth)
-        dice_coeffs['global mean'] = dice.mean()
 
         # 提取特定类别的Dice系数
         et_dice = dice_coeffs['ET'].item()
@@ -184,7 +166,7 @@ class EvaluationMetrics:
         y_pred = torch.argmax(y_pred, dim=1).to(dtype=torch.int64) # 降维，选出概率最大的类索引值
         y_pred = F.one_hot(y_pred, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float() # one-hot
         y_mask = F.one_hot(y_mask, num_classes=4).permute(0, 4, 1, 2, 3).float() # one-hot
-        y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
+        # y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
         
         pred_list, mask_list = self.pre_processing(y_pred, y_mask) 
         jaccard_coeffs = {}
@@ -195,12 +177,6 @@ class EvaluationMetrics:
             union = pred.sum(dim=(-3, -2, -1)) + mask.sum(dim=(-3, -2, -1)) - intersection
             jaccard = (intersection)/ (union + self.smooth)
             jaccard_coeffs[sub_area] = jaccard.mean()
-
-        # intersection = (y_pred * y_mask).sum(dim=(-3, -2, -1))
-        # union = y_pred.sum(dim=(-3, -2, -1)) + y_mask.sum(dim=(-3, -2, -1)) - intersection
-        # jaccard = (intersection) / (union + self.smooth)
-        # jaccard_coeffs['global mean'] = jaccard.mean()
-        # global_mean_dice = jaccard_coeffs['global mean'].item()
         
         # 提取特定类别的Jaccard系数
         et_jaccard = jaccard_coeffs['ET'].item()
@@ -222,7 +198,7 @@ class EvaluationMetrics:
         y_pred = torch.argmax(y_pred, dim=1).to(dtype=torch.int64) # 降维，选出概率最大的类索引值
         y_pred = F.one_hot(y_pred, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float() # one-hot
         y_mask = F.one_hot(y_mask, num_classes=4).permute(0, 4, 1, 2, 3).float() # one-hot
-        y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
+        # y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
         
         # 获取子区的预测标签和真实标签
         pred_list, mask_list = self.pre_processing(y_pred, y_mask) 
@@ -232,13 +208,6 @@ class EvaluationMetrics:
             TP, FN, _, _ = self.calculate_confusion_matrix(pred, mask)
             recall = (TP) / (TP + FN + self.smooth)
             recall_scores[sub_area] = recall.mean()
-        
-        # # 计算全局平均Recall
-        # TP, FN, _, _ = self.calculate_confusion_matrix(y_pred, y_mask)
-        # recall = (TP) / (TP + FN + self.smooth)
-        # recall_scores['global_mean'] = recall.mean()
-        # global_mean_recall = recall_scores['global_mean'].item()
-        
         
         et_recall = recall_scores['ET'].item()
         tc_recall = recall_scores['TC'].item()
@@ -260,7 +229,7 @@ class EvaluationMetrics:
         y_pred = torch.argmax(y_pred, dim=1).to(dtype=torch.int64) # 降维，选出概率最大的类索引值
         y_pred = F.one_hot(y_pred, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float() # one-hot
         y_mask = F.one_hot(y_mask, num_classes=4).permute(0, 4, 1, 2, 3).float() # one-hot
-        y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
+        # y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
         
         # 获取子区的预测标签和真实标签
         pred_list, mask_list = self.pre_processing(y_pred, y_mask) 
@@ -270,12 +239,6 @@ class EvaluationMetrics:
             TP, _, FP, _ = self.calculate_confusion_matrix(pred, mask)
             precision = (TP ) / (TP + FP + self.smooth)
             precision_scores[sub_area] = precision.mean()
-        
-        
-        # TP, _, FP, _ = self.calculate_confusion_matrix(y_pred, y_mask)
-        # precision = (TP ) / (TP + FP + self.smooth)
-        # precision_scores['global_mean'] = precision.mean()
-        # global_mean_precision = precision_scores['global_mean'].item()
         
         et_precision = precision_scores['ET'].item()
         tc_precision = precision_scores['TC'].item()
@@ -296,7 +259,7 @@ class EvaluationMetrics:
         y_pred = torch.argmax(y_pred, dim=1).to(dtype=torch.int64) # 降维，选出概率最大的类索引值
         y_pred = F.one_hot(y_pred, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float() # one-hot
         y_mask = F.one_hot(y_mask, num_classes=4).permute(0, 4, 1, 2, 3).float() # one-hot
-        y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
+        # y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
         
         # 获取子区的预测标签和真实标签
         pred_list, mask_list = self.pre_processing(y_pred, y_mask)
@@ -305,10 +268,6 @@ class EvaluationMetrics:
             accuracy = (TP + TN) / (TP + FN + FP + TN + self.smooth)
             accuracy_scores[sub_area] = accuracy.mean()
             
-        # TP, FN, FP, TN = self.calculate_confusion_matrix(y_pred, y_mask)
-        # accuracy = (TP + TN) / (TP + FN + FP + TN)
-        # accuracy_scores['global_mean'] = accuracy.mean()
-        # global_mean_accuracy = accuracy_scores['global_mean'].item()
             
         et_accuracy = accuracy_scores['ET'].item()
         tc_accuracy = accuracy_scores['TC'].item()
@@ -336,10 +295,6 @@ class EvaluationMetrics:
         # f1_score on WT
         f1_scores[self.sub_areas[2]] = 2 * (precision_list[3] * recall_list[3]) / (precision_list[3] + recall_list[3] + self.smooth)
         
-        # # f1_score on global
-        # f1_scores['global_mean'] = 2 * (precision_list[0] * recall_list[0]) / (precision_list[0] + recall_list[0] + self.smooth)
-        # mean_f1 = f1_scores['global_mean']
-        
         et_f1 = f1_scores['ET']
         tc_f1 = f1_scores['TC']
         wt_f1 = f1_scores['WT']
@@ -364,10 +319,7 @@ class EvaluationMetrics:
         f2_scores[self.sub_areas[1]] = (5 * precision_list[2] * recall_list[2]) / (4 * precision_list[2] + recall_list[2] + self.smooth)
         # f2_score on WT
         f2_scores[self.sub_areas[2]] = (5 * precision_list[3] * recall_list[3]) / (4 * precision_list[3] + recall_list[3] + self.smooth)
-        
-        # f2_score on global
-        # f2_scores['global_mean'] = (5 * precision_list[0] * recall_list[0]) / (4 * precision_list[0] + recall_list[0] + self.smooth)
-        # mean_f2 = f2_scores['global_mean']
+
         
         et_f2 = f2_scores['ET']
         tc_f2 = f2_scores['TC']
@@ -380,9 +332,24 @@ class EvaluationMetrics:
         """
         整合到评估类中的接口方法
         """
+        h95_distances = {}
         # 确保输入是分割结果而非概率图
-        y_pred = torch.argmax(y_pred, dim=1)
-        return hausdorff_distance_3d(y_pred, y_mask) 
+        y_pred = torch.argmax(y_pred, dim=1).to(dtype=torch.int64) # 降维，选出概率最大的类索引值
+        y_pred = F.one_hot(y_pred, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float() # one-hot
+        y_mask = F.one_hot(y_mask, num_classes=4).permute(0, 4, 1, 2, 3).float() # one-hot
+        # y_mask = y_mask[:, 1:, :, :, :] # 去掉背景类别
+        
+        pred_list, mask_list = self.pre_processing(y_pred, y_mask)
+        for sub_area, pred, mask in zip(self.sub_areas, pred_list, mask_list):
+            h95_distances[sub_area] = hausdorff_distance_3d(pred, mask)
+            
+        et_h95_distances = h95_distances['ET']
+        tc_h95_distances = h95_distances['TC']
+        wt_h95_distances = h95_distances['WT']
+        mean_h95_distances = (et_h95_distances + tc_h95_distances + wt_h95_distances) / len(h95_distances)
+        
+            
+        return mean_h95_distances, et_h95_distances, tc_h95_distances, wt_h95_distances
         
     def update(self, y_pred, y_mask):
         """
@@ -391,15 +358,16 @@ class EvaluationMetrics:
         :param y_mask: 真实标签
         :return: 所有的评估指标
         """
+        y_pred = F.softmax(y_pred, dim=1)
         dice_scores = self.dice_coefficient(y_pred, y_mask)
         jacc_scores = self.jaccard_index(y_pred, y_mask)
         accuracy_scores = self.accuracy(y_pred, y_mask)
         precision_scores = self.precision(y_pred, y_mask)
         recall_scores = self.recall(y_pred, y_mask)
         f1_scores = self.f1_score(y_pred, y_mask)
-        f2_scores = self.f2_score(y_pred, y_mask)
-        # h95_distance = self.hausdorff_95(y_pred, y_mask)
-        metrics = [dice_scores, jacc_scores, accuracy_scores, precision_scores, recall_scores, f1_scores, f2_scores]
+        # f2_scores = self.f2_score(y_pred, y_mask)
+        h95_distance = self.hausdorff_95(y_pred, y_mask)
+        metrics = [dice_scores, jacc_scores, accuracy_scores, precision_scores, recall_scores, f1_scores, h95_distance]
         metrics = np.stack(metrics, axis=0) # [7, 4]
         metrics = np.nan_to_num(metrics)
         return metrics

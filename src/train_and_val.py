@@ -14,6 +14,7 @@ import time
 import torch
 import numpy as np
 from tqdm import tqdm
+import torch.nn.functional as F
 # from torch.nn import CrossEntropyLoss
 # from loss_function import Diceloss, crossEntropy_loss
 # from torch.nn import CrossEntropyLoss

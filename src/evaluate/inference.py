@@ -42,15 +42,13 @@ from evaluate.metrics import *
 from utils.logger_tools import custom_logger, get_current_date, get_current_time
 from utils.ckpt_tools import load_checkpoint
 
-from nnArchitecture.unet3d import *
-from nnArchitecture.uxnet import UXNET
-from nnArchitecture.segFormer3d import SegFormer3D
-from nnArchitecture.MogaNet import MogaNet
-from nnArchitecture.AtentionUNet import AttentionUnet
-from nnArchitecture.Mamba3d import Mamba3d
-from nnArchitecture.unetr import UNETR
-from nnArchitecture.unetrpp import UNETR_PP
-from nnArchitecture.SwinUNETRv2 import SwinUNETR
+from nnArchitecture.my_unet.unet3d import UNet3D
+from nnArchitecture.my_unet.AttentionUnet import AttentionUNet3D
+from nnArchitecture.my_unet.RA_Unet import RA_UNet
+from nnArchitecture.my_unet.DasppResAtteUNet import DasppResAtteUNet
+from nnArchitecture.my_unet.DyConvDasppResAtteUNet import DyConvDasppResAtteUNet
+from nnArchitecture.my_unet.ScgaDasppResAtteUNet import ScgaDasppResAtteUNet
+
 # from nnArchitecture.dw_unet3d import  DW_UNet3D
 
 # from utils.plot_tools.plot_results import NiiViewer
@@ -58,70 +56,23 @@ from nnArchitecture.SwinUNETRv2 import SwinUNETR
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
-def load_model(model_name, in_channels=4, out_channels=4):
+def load_model(args):
     """加载模型"""
-    if model_name == 'unet3d':
-        model = UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'soft_unet3d':
-        model = soft_UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'cad_unet3d':
-        model = CAD_UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'soft_cad_unet3d':
-        model = soft_CAD_UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'cadi_unet3d':
-        model = CADI_UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'soft_cadi_unet3d':
-        model = soft_CADI_UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'dw_unet3d':
-        model = DW_UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'soft_dw_unet3d':
-        model = soft_DW_UNet3D(in_channels=in_channels, out_channels=out_channels)
-    elif model_name == 'segformer3d':
-        model = SegFormer3D(in_channels=in_channels, num_classes=out_channels)
-    elif model_name == 'moga':
-        model = MogaNet(in_channels=in_channels, n_classes=out_channels)
-    elif model_name == 'attention_unet':
-        model = AttentionUnet(
-            spatial_dims=3,
-            in_channels=in_channels,
-            out_channels=out_channels,
-            channels=[32, 64, 128, 256, 320],
-            strides=[2, 2, 2, 2],
-        )
-    elif model_name == 'mamba3d':
-        model = Mamba3d(in_channels=in_channels, n_classes=out_channels)
-    elif model_name == 'unetr':
-        model = UNETR(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            img_size=(128, 128, 128),
-            feature_size=16,
-            hidden_size=768,
-            num_heads=12,
-            spatial_dims=3,
-            predict_mode=True  # 设置为预测模式
-        )
-    elif model_name == 'unetrpp':
-        model = UNETR_PP(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            feature_size=16,
-            hidden_size=256,
-            num_heads=8,
-            pos_embed="perceptron",
-            norm_name="instance",
-            dropout_rate=0.1,
-            depths=[3, 3, 3, 3],
-            dims=[32, 64, 128, 256],
-            conv_op=nn.Conv3d,
-            do_ds=False,
-        )
-    elif model_name == 'uxnet':
-        model = UXNET(in_channels=in_channels, out_channels=out_channels)
+    if args.model_name == 'unet3d':
+        model = UNet3D(in_channels=4, out_channels=4)
+    elif args.model_name == 'attention_unet3d':
+        model = AttentionUNet3D(in_channels=4, out_channels=4)
+    elif args.model_name == 'res_attention_unet3d':
+        model = RA_UNet(in_channels=4, out_channels=4)
+    elif args.model_name == 'daspp_res_atte_unet':
+        model = DasppResAtteUNet(in_channels=4, out_channels=4)
+    elif args.model_name == 'cgga_daspp_res_atte_unet':
+        model = ScgaDasppResAtteUNet(in_channels=4, out_channels=4)
     else:
-        raise ValueError(f"Incorrect input of parameter model_name:{model_name}")
+        raise ValueError(f"Unknown model name: {args.model_name}")
     
     model = model.to(DEVICE)
+    
     return model
 
 
@@ -243,7 +194,7 @@ def slide_window_pred(model, test_data, device, window_size, stride_ratio=1):
 
     with torch.no_grad():
         with autocast(device_type='cuda'):
-            pred_mask = torch.zeros_like(test_data, device=device)
+            pred_mask = torch.zeros((N, C, D, H, W), device=device)
             for d in range(0, D, stride_size[0]):
                 for h in range(0, H, stride_size[1]):
                     for w in range(0, W, stride_size[2]):
@@ -296,9 +247,9 @@ def save_nii(test_df, pred_vimage, vmask, output_path, affine, case_id):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run inference with UXNET model.")
-    parser.add_argument('--model_name', type=str, default='attention_unet', help='Model name (default: uxnet)')
+    parser.add_argument('--model_name', type=str, default='attention_unet3d', help='Model name (default: uxnet)')
     parser.add_argument('--test_csv', type=str, default='/root/workspace/VoxelMedix/data/raw/brats21_original/test.csv', help='Path to the test dataset CSV file (default: /root/workspace/VoxelMedix/data/raw/brats21_original/test.csv)')
-    parser.add_argument('--ckpt_path', type=str, default='/root/workspace/VoxelMedix/output/AttentionUnet_2025-01-16_13-41-00/best@e84_AttentionUnet__diceloss0.1803_dice0.8201_2025-01-15_20-41-19_24.pth', help='')
+    parser.add_argument('--ckpt_path', type=str, default="/mnt/d/results/AttentionUNet3D_2025-02-15_22-19-03/checkpoints/AttentionUNet3D_final_model.pth")
     parser.add_argument('--output_path', type=str, default=f'/root/workspace/VoxelMedix/output', help='Output directory to save results (default: /root/workspace/VoxelMedix/output/UXNET)')
     return parser.parse_args()
 

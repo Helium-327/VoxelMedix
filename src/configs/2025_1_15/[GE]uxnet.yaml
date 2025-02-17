@@ -16,7 +16,7 @@ model:
   name: "uxnet"
   in_channel: 4
   mid_channel: 32
-  out_channel: 4
+  out_channel: 3
   fusion_flag: true
   total_parms: null
 

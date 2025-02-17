@@ -27,16 +27,13 @@ from utils.shell_tools import *
 from utils.tb_tools import *
 from evaluate.metrics import EvaluationMetrics
 
-from nnArchitecture.unet3d import *
-from nnArchitecture.uxnet import UXNET
-from nnArchitecture.segFormer3d import SegFormer3D
-from nnArchitecture.MogaNet import MogaNet
-from nnArchitecture.AtentionUNet import AttentionUnet
-from nnArchitecture.Mamba3d import Mamba3d
-from nnArchitecture.unetr import UNETR
-from nnArchitecture.unetrpp import UNETR_PP
-from nnArchitecture.SwinUNETRv2 import SwinUNETR
-# from nnArchitecture.dw_unet3d import  DW_UNet3D
+from nnArchitecture.my_unet.unet3d import UNet3D
+from nnArchitecture.my_unet.AttentionUnet import AttentionUNet3D
+from nnArchitecture.my_unet.RA_Unet import RA_UNet
+from nnArchitecture.my_unet.DasppResAtteUNet import DasppResAtteUNet
+from nnArchitecture.my_unet.DyConvDasppResAtteUNet import DyConvDasppResAtteUNet
+from nnArchitecture.my_unet.ScgaDasppResAtteUNet import ScgaDasppResAtteUNet
+
 
 from datasets.transforms import *
 from datasets.BraTS21 import BraTS21_3D
@@ -59,79 +56,17 @@ MetricsGo = EvaluationMetrics()  # 实例化评估指标类
 def load_model(args):
     """加载模型"""
     if args.model_name == 'unet3d':
-        model = UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'soft_unet3d':
-        model = soft_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'cad_unet3d':
-        model = CAD_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'soft_cad_unet3d':
-        model = soft_CAD_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'cadi_unet3d':
-        model = CADI_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'soft_cadi_unet3d':
-        model = soft_CADI_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'dw_unet3d':
-        model = DW_UNet3D(in_channels=args.model_in_channel, out_channels=args.model_out_channel)
-    elif args.model_name == 'soft_dw_unet3d':
-        model = soft_DW_UNet3D(
-            in_channels=args.model_in_channel, 
-            out_channels=args.model_out_channel)
-    elif args.model_name == 'segformer3d':
-        model = SegFormer3D(
-            in_channels=args.model_in_channel, 
-            num_classes=args.model_out_channel
-            )
-    elif args.model_name == 'moga':
-        model = MogaNet(
-            in_channels=args.model_in_channel, 
-            n_classes=args.model_out_channel
-            )
-    elif args.model_name == 'attention_unet':
-        model = AttentionUnet(
-            spatial_dims=3,
-            in_channels=args.model_in_channel,
-            out_channels=args.model_out_channel,
-            channels=[32, 64, 128, 256, 320],
-            strides=[2, 2, 2, 2],
-        )
-    elif args.model_name == 'mamba3d':#✅
-        model = Mamba3d(
-            in_channels=4, 
-            n_classes=4
-            )
-    elif args.model_name == 'unetr': #✅
-        model = UNETR(
-            in_channels=args.model_in_channel,
-            out_channels=args.model_out_channel,
-            img_size=(128, 128, 128),
-            feature_size=16,
-            hidden_size=768,
-            num_heads=12,
-            spatial_dims=3,
-            predict_mode=True  # 设置为预测模式
-    )
-    elif args.model_name == 'unetrpp':#✅
-        model = UNETR_PP(
-            in_channels=args.model_in_channel,
-            out_channels=args.model_out_channel,  # 假设分割为2类
-            feature_size=16,
-            hidden_size=256,
-            num_heads=8,
-            pos_embed="perceptron",
-            norm_name="instance",
-            dropout_rate=0.1,
-            depths=[3, 3, 3, 3],
-            dims=[32, 64, 128, 256],
-            conv_op=nn.Conv3d,
-            do_ds=False,
-    )
-    elif args.model_name == 'uxnet': #✅
-        model = UXNET(
-            in_channels=args.model_in_channel, 
-            out_channels=args.model_out_channel
-            )
+        model = UNet3D(in_channels=4, out_channels=4)
+    elif args.model_name == 'attention_unet3d':
+        model = AttentionUNet3D(in_channels=4, out_channels=4)
+    elif args.model_name == 'res_attention_unet3d':
+        model = RA_UNet(in_channels=4, out_channels=4)
+    elif args.model_name == 'daspp_res_atte_unet':
+        model = DasppResAtteUNet(in_channels=4, out_channels=4)
+    elif args.model_name == 'scga_daspp_res_atte_unet':
+        model = ScgaDasppResAtteUNet(in_channels=4, out_channels=4)
     else:
-        raise ValueError(f"Incorrect input of parameter args.model_name:{args.model_name}, ")
+        raise ValueError(f"Unknown model name: {args.model_name}")
     
     model = model.to(DEVICE)
     
@@ -405,7 +340,7 @@ if __name__ == '__main__':
     ## 定义全局参数
     parser = argparse.ArgumentParser(description='Train args')
     parser.add_argument('--config', type=str, 
-                        default='/root/workspace/VoxelMedix/src/configs/2025_1_15/[GE]uxnet.yaml', 
+                        default='/root/workspace/VoxelMedix/src/configs/my_uent/unet3d.yaml', 
                         help='Path to the configuration YAML file')
     parser.add_argument('--resume', type=str, 
                         default=False, 
@@ -413,12 +348,14 @@ if __name__ == '__main__':
     parser.add_argument('--resume_tb_path', type=str,
                         default=False, 
                         help='Path to the TensorBoard logs to resume from')
-    parser.add_argument('--training_epochs', type=str,
-                        default=100, help='training epoch')
-    parser.add_argument('--training_train_length', type=str,
-                        default=500, help='training epoch')
-    parser.add_argument('--training_val_length', type=str,
-                        default=100, help='training epoch')
+    # parser.add_argument('--training_local', type=str,
+    #                     default=True, help='training epoch')   
+    # parser.add_argument('--training_epochs', type=str,
+    #                     default=10, help='training epoch')
+    # parser.add_argument('--training_train_length', type=str,
+    #                     default=50, help='training epoch')
+    # parser.add_argument('--training_val_length', type=str,
+                        # default=10, help='training epoch')
     # parser.add_argument('--training_model', type=str,
     #                     default='unetr', help='training epoch')
     # 解析命令行参数

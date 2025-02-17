@@ -8,6 +8,7 @@
 =================================================
 '''
 
+from sklearn.model_selection import PredefinedSplit
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from torch.nn import functional as F
@@ -29,9 +30,10 @@ class BaseLoss:
         :param y_pred: 预测值 [batch, 4, D, W, H]
         :param y_mask: 真实值 [batch, 4, D, W, H]
         """
+        y_pred = F.softmax(y_pred, dim=1)
         et_pred = y_pred[:, 3, ...]
         tc_pred = y_pred[:, 1, ...] + y_pred[:, 3, ...]
-        wt_pred = y_pred[:, 1:, ...].sum(dim=1)
+        wt_pred = y_pred[:, 1:, ...].sum(dim=1) 
         
         et_mask = y_mask[:, 3, ...]
         tc_mask = y_mask[:, 1, ...] + y_mask[:, 3, ...]
@@ -52,6 +54,7 @@ class DiceLoss(BaseLoss):
         :param y_mask: 真实值 [batch, D, W, H]
         """
         y_mask = F.one_hot(y_mask, num_classes=self.num_classes).permute(0, 4, 1, 2, 3).float()
+        # y_mask = y_mask[:, 1:, ...]
         pred_list, mask_list = self.split_sub_areas(y_pred, y_mask)
 
         area_et_loss, area_tc_loss, area_wt_loss = self.get_every_sub_areas_loss(pred_list, mask_list)
@@ -130,6 +133,39 @@ class CELoss(BaseLoss):
         wt_loss = loss_dict['WT']
         mean_loss = (et_loss + tc_loss + wt_loss) / 3
         return mean_loss, et_loss, tc_loss, wt_loss
+
+# class H95DiceLoss(nn.Module):
+#     def __init__(self, alpha=0.5, epsilon=1e-6):
+#         super(H95DiceLoss, self).__init__()
+#         self.alpha = alpha
+#         self.epsilon = epsilon
+        
+#     def _compute_boundary(self, mask):
+#         """计算二值掩膜的边界"""
+#         kernel = torch.tensor([[[[-1, -1, -1],
+#                                  [-1, 8, -1],
+#                                  [-1, -1, -1]]]],
+#                               dtype=torch.float32, device=mask.device)
+        
+#         boundaries = torch.abs(F.conv3d(mask.float(), kernel, padding=1))
+        
+#         return (boundaries > 0).float()
+    
+#     def _hausdorff_loss(self, pred, target):
+#         """计算基于距离变化的Hausdorff近似损失"""
+        
+#         # 计算边界
+#         pred_boundary = self._compute_boundary(pred)
+#         target_boundary = self._compute_boundary(target)
+        
+#         # 计算距离变化
+#         with torch.no_grad():
+#             target_dist = self._distance_transform(target_boundary)
+#             pred_dist = self._distance_transform(pred_boundary)
+            
+        # 计算双向距离损失
+        
+        
 
 if __name__ == '__main__':
     y_pred = torch.randn(2, 4, 128, 128, 128)

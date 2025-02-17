@@ -18,7 +18,7 @@
 # echo "All configurations processed successfully."
 
 # Directory containing the YAML files
-config_dir="/root/workspace/VoxelMedix/src/configs/2025_1_15"
+config_dir="/root/workspace/VoxelMedix/src/configs/2025_2_16"
 
 # Create a log directory to store error logs
 log_dir="/root/workspace/VoxelMedix/logs"
