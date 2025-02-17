@@ -69,7 +69,7 @@ def start_tensorboard(log_path, port=6006, host='0.0.0.0'):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="启动 TensorBoard 面板")
-    parser.add_argument("--log_path", type=str, default='/root/workspace/SliceMedix/results/2025-01-02/2025-01-02_17:37:30/tensorBoard', help="TensorBoard 日志路径")
+    parser.add_argument("--log_path", type=str, default='/root/autodl-tmp/VoxelMedix/results/ScgaDasppResAtteUNet_2025-02-17_12-23-08/tensorBoard', help="TensorBoard 日志路径")
     parser.add_argument("--port", type=int, default=6008, help="TensorBoard 端口号")
     parser.add_argument("--host", type=str, default='0.0.0.0', help="TensorBoard 主机地址")
     args = parser.parse_args()
