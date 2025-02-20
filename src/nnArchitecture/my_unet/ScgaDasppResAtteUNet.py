@@ -100,7 +100,7 @@ class SCGA(nn.Module):
         x_d_sigmoid = F.sigmoid(x_d).view(b*self.group, c // self.group, 1, 1, w)
         
         # Apply attention maps using broadcasting
-        x_attended = group_x * x_h_sigmoid * x_w_sigmoid * x_d_sigmoid
+        x_attended = x_h_sigmoid * x_w_sigmoid * x_d_sigmoid
         
         x1 = self.groupNorm(group_x * x_attended)  # 高度、宽度、深度注意力
         x11 = self.softmax(self.averagePooling(x1).reshape(b * self.group, -1, 1).permute(0, 2, 1))  # 全局平均池化 + softmax

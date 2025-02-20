@@ -99,13 +99,12 @@ class EMA3D(nn.Module):
         x_h, x_w, x_d = torch.split(hwd, [d, h, w], dim=2)       # 拆分
 
         # Apply sigmoid activation
-        x_c_sigmoid = x_c.sigmoid().view(b*self.group, c // self.group, 1, 1, 1)
         x_h_sigmoid = x_h.sigmoid().view(b*self.group, c // self.group, d, 1, 1)
         x_w_sigmoid = x_w.sigmoid().view(b*self.group, c // self.group, 1, h, 1)
         x_d_sigmoid = x_d.sigmoid().view(b*self.group, c // self.group, 1, 1, w)
         
         # Apply attention maps using broadcasting
-        x_attended = group_x * x_h_sigmoid * x_w_sigmoid * x_d_sigmoid * x_c_sigmoid
+        x_attended =x_h_sigmoid * x_w_sigmoid * x_d_sigmoid
         
         x1 = self.groupNorm(group_x * x_attended)  # 高度、宽度、深度注意力
         x11 = self.softmax(self.averagePooling(x1).reshape(b * self.group, -1, 1).permute(0, 2, 1))  # 全局平均池化 + softmax

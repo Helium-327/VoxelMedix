@@ -28,9 +28,9 @@ from utils.shell_tools import *
 from utils.tb_tools import *
 from evaluate.metrics import EvaluationMetrics
 
-from nnArchitecture.my_unet.unet3d import UNet3D
-from nnArchitecture.my_unet.AttentionUnet import AttentionUNet3D
-from nnArchitecture.my_unet.RA_Unet import RA_UNet
+from nnArchitecture.my_dwunet.unet3d import UNet3D
+from nnArchitecture.my_dwunet.AttentionUNet import AttentionUNet3D
+from nnArchitecture.my_dwunet.SCGA_UNet import SCGA_UNet3D
 from nnArchitecture.my_unet.DasppResAtteUNet import DasppResAtteUNet
 from nnArchitecture.my_unet.ScgaDasppResAtteUNet import ScgaDasppResAtteUNet
 # from nnArchitecture.my_unet.ScgaResAtteUNet import ScgaResAtteUNet
@@ -62,8 +62,8 @@ def load_model(args):
         model = UNet3D(in_channels=4, out_channels=4)
     elif args.model_name == 'attention_unet3d':
         model = AttentionUNet3D(in_channels=4, out_channels=4)
-    elif args.model_name == 'res_attention_unet3d':
-        model = RA_UNet(in_channels=4, out_channels=4)
+    elif args.model_name == 'scga_unet3d':
+        model = SCGA_UNet3D(in_channels=4, out_channels=4)
     elif args.model_name == 'daspp_res_atte_unet':
         model = DasppResAtteUNet(in_channels=4, out_channels=4)
     elif args.model_name == 'scga_res_atte_unet':
@@ -348,22 +348,22 @@ if __name__ == '__main__':
     ## 定义全局参数
     parser = argparse.ArgumentParser(description='Train args')
     parser.add_argument('--config', type=str, 
-                        default='/root/data/code/VoxelMedix/src/configs/my_uent/unet3d.yaml', 
+                        default='/root/data/code/VoxelMedix/src/configs/2025_2_20/2_scga_unet3d.yaml', 
                         help='Path to the configuration YAML file')
-    parser.add_argument('--resume', type=str, 
-                        default=False, 
-                        help='Path to the checkpoint to resume training from')
-    parser.add_argument('--resume_tb_path', type=str,
-                        default=False, 
-                        help='Path to the TensorBoard logs to resume from')
-    parser.add_argument('--training_local', type=str,
-                        default=True, help='training epoch')   
-    parser.add_argument('--training_epochs', type=str,
-                        default=100, help='training epoch')
-    parser.add_argument('--training_train_length', type=str,
-                        default=200, help='training epoch')
-    parser.add_argument('--training_val_length', type=str,
-                        default=40, help='training epoch')
+    # parser.add_argument('--resume', type=str, 
+    #                     default=False, 
+    #                     help='Path to the checkpoint to resume training from')
+    # parser.add_argument('--resume_tb_path', type=str,
+    #                     default=False, 
+    #                     help='Path to the TensorBoard logs to resume from')
+    # parser.add_argument('--training_local', type=str,
+    #                     default=True, help='training epoch')   
+    # parser.add_argument('--training_epochs', type=str,
+    #                     default=100, help='training epoch')
+    # parser.add_argument('--training_train_length', type=str,
+    #                     default=200, help='training epoch')
+    # parser.add_argument('--training_val_length', type=str,
+    #                     default=40, help='training epoch')
 
     # 解析命令行参数
     global_args = vars(parser.parse_args())  

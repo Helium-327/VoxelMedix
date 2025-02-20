@@ -15,6 +15,7 @@ import torch.nn.functional as F
 
 from torchinfo import summary
 import time
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
 def init_weights_3d(m):
     """Initialize 3D卷积和BN层的权重"""

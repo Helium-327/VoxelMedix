@@ -1,6 +1,6 @@
 training:
   epochs: 200
-  batch_size: 2
+  batch_size: 4
   num_workers: 8
   early_stop_patience: 30
   save_max: 5
@@ -13,7 +13,7 @@ training:
   test_length: 10
 
 model:
-  name: "unet3d"
+  name: "scga_unet3d"
   in_channel: 4
   mid_channel: 32
   out_channel: 4
